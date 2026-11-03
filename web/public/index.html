@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lockstep</title>
+<meta name="description" content="DAOs pledge together. Money moves only when the whole plan is funded.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="6" width="6" height="20" rx="2"/><rect x="13" y="6" width="6" height="20" rx="2"/><rect x="23" y="6" width="6" height="20" rx="2"/><rect x="3" y="14" width="26" height="4" rx="2" class="bar"/></svg>
+    <span class="word">Lockstep</span>
+  </div>
+  <p class="tag">DAOs pledge together. Money moves only when the whole plan is funded.</p>
+  <div class="net" id="net"></div>
+</header>
+
+<main>
+  <section class="planbar">
+    <label for="planSel" class="muted">Plan</label>
+    <select id="planSel"></select>
+    <button id="newPlan" class="ghost">Start a new plan</button>
+    <span id="busy" class="busy" hidden><span class="dot"></span><span id="busyText">Working on chain…</span></span>
+  </section>
+
+  <section class="hero">
+    <p class="status" id="statusPill"></p>
+    <h1 id="headline">Loading the plan from the chain…</h1>
+    <p class="sub" id="subline"></p>
+  </section>
+
+  <section class="lines" aria-label="Cost lines">
+    <div class="sectionhead"><h2>What the plan needs</h2><p class="muted" id="linesNote"></p></div>
+    <div id="lines"></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <div class="grid">
+    <section aria-label="Pledges">
+      <div class="sectionhead"><h2>Who pledged</h2><p class="muted">Each council voted its pledge as an ordinary Sputnik proposal. Until settlement, the money stays in each DAO's treasury.</p></div>
+      <ol class="daos" id="daos"></ol>
+    </section>
+
+    <section aria-label="Complete the plan" id="completeSec">
+      <div class="sectionhead"><h2 id="completeTitle">What completes it</h2><p class="muted" id="completeNote"></p></div>
+      <p class="answer" id="answer"></p>
+      <form id="topupForm" class="topup">
+        <div class="row">
+          <label>Amount <input id="amt" type="number" min="1" max="500" step="1" value="50" inputmode="numeric"></label>
+          <label>May pay for <select id="line"></select></label>
+        </div>
+        <p class="preview" id="preview"></p>
+        <button type="submit" id="topupBtn">Top up as the demo donor</button>
+        <p class="fine">The top-up is held by the contract and returned if the plan does not settle. Demo donor: <span id="donorId" class="mono"></span>.</p>
+      </form>
+      <div class="spend" id="spendBox">
+        <p><strong>Try the failure.</strong> Before activating, let Community DAO's council pay 250 tUSD for something else. Its pledge stays on record, but its treasury no longer holds it.</p>
+        <button id="spendBtn" class="ghost danger">Community DAO spends 250 elsewhere</button>
+      </div>
+    </section>
+  </div>
+
+  <section class="steps" aria-label="Settlement">
+    <div class="sectionhead"><h2>Settle, or roll back</h2><p class="muted">Anyone may call each step. The contract decides; this page only presses the buttons.</p></div>
+    <ol class="stepper">
+      <li id="st-activate"><button id="activateBtn">1 · Activate</button><span>The contract checks that every line is covered exactly, within each pledge's cap and permitted lines.</span></li>
+      <li id="st-collect"><button id="collectBtn">2 · Collect shares</button><span>For each DAO, Lockstep files a transfer proposal and approves it with the role the DAO installed. If any share fails, all of it goes back.</span></li>
+      <li id="st-pay"><button id="payBtn">3 · Pay out</button><span>Payouts to the payees, or refunds to every DAO and donor that had sent money.</span></li>
+    </ol>
+    <div id="outcome"></div>
+  </section>
+
+  <section class="verify" aria-label="Independent check">
+    <div class="sectionhead"><h2>Checked in this browser</h2><p class="muted">Recomputed here from the plan as stored on chain, with the open-source gap engine. Nothing below comes from the demo server's opinion.</p></div>
+    <ul id="checks" class="checks"></ul>
+  </section>
+
+  <section class="log" aria-label="Transactions">
+    <div class="sectionhead"><h2>Every transaction</h2><p class="muted" id="logNote"></p></div>
+    <ol id="log"></ol>
+  </section>
+</main>
+
+<footer>
+  <p>Built at NEAR HACKATHON, November 2026. Sputnik DAO v2 treasuries, a Lockstep contract, a NEP-141 test token with no value.</p>
+  <p id="ids" class="mono"></p>
+  <p><a href="https://github.com/Marc-Dvci/lockstep">Source and README</a></p>
+</footer>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>

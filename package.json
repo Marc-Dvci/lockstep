@@ -8,12 +8,19 @@
     "test:contract": "cargo test -p lockstep",
     "build": "cd contract && cargo near build non-reproducible-wasm --no-abi && cd ../token && cargo near build non-reproducible-wasm --no-abi",
     "test:e2e": "node --test --test-timeout=900000 tests/e2e.test.js",
-    "fetch:sputnik": "node scripts/fetch-sputnik.js"
+    "fetch:sputnik": "node scripts/fetch-sputnik.js",
+    "verify": "node scripts/verify.js",
+    "seed": "node scripts/seed.js",
+    "start": "node web/server.js",
+    "test:ui": "node tests/ui.drive.js"
   },
   "dependencies": {
     "near-api-js": "^7.4.0"
   },
   "engines": {
     "node": ">=22"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.64.1"
   }
 }

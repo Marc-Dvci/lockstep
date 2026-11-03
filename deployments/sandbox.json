@@ -1,0 +1,35 @@
+{
+  "network": "sandbox",
+  "rpc": "http://127.0.0.1:3030",
+  "explorer": null,
+  "created": "2026-11-03T14:30:24.371Z",
+  "lockstep": "lockstep.test.near",
+  "token": "token.test.near",
+  "factory": "sputnik.test.near",
+  "daos": [
+    {
+      "id": "lockstep-events.sputnik.test.near",
+      "name": "Events DAO"
+    },
+    {
+      "id": "lockstep-builders.sputnik.test.near",
+      "name": "Builders DAO"
+    },
+    {
+      "id": "lockstep-community.sputnik.test.near",
+      "name": "Community DAO"
+    }
+  ],
+  "council": [
+    "alice.test.near",
+    "bob.test.near"
+  ],
+  "demoAccounts": {
+    "coordinator": "coordinator.test.near",
+    "donor": "donor.test.near",
+    "venue": "venue.test.near",
+    "caterer": "caterer.test.near",
+    "speaker": "speaker.test.near",
+    "landlord": "landlord.test.near"
+  }
+}
