@@ -54,6 +54,18 @@ Expected last line: `N passed, 0 failed`. N grows with the number of plans: it w
 
 Lockstep does not replace the multisig. Each treasury keeps its council, its voting rules and its money until the moment a fully funded plan settles.
 
+### Seen from the council's treasury app (Trezu)
+
+Everything Lockstep does on a DAO is an ordinary Sputnik proposal, so a council sees it in the treasury app it already uses. The hosted [Trezu](https://github.com/NEAR-DevHub/trezu) is mainnet-only. These screenshots come from Trezu's own testnet dev mode (`nt-fe`, `bun run testnet:mock`, commit `7b063dd`), run locally on 3 November 2026 against the demo DAOs above, viewed as a guest:
+
+- **Events DAO, Executed tab:** each pledge is a `pledge` function call on `lockstep.testnet`, voted 2/2 by the council. Each share is a Payment Request filed by `lockstep.testnet` through its role.
+
+  ![Trezu, Events DAO: pledges voted by the council, and share transfers filed by lockstep.testnet](docs/screens/trezu-events-executed.png)
+
+- **Community DAO, Failed tab:** the three shares that failed after its council spent the money elsewhere (plans #2, #4, #6). Lockstep reads exactly this status back, then rolls the plan back.
+
+  ![Trezu, Community DAO: three failed share transfers](docs/screens/trezu-community-failed.png)
+
 ## Try it locally in a few minutes
 
 The demo runs against a local NEAR sandbox (nearcore 2.14.0, protocol 88, the same protocol as testnet) with the same Sputnik DAO code as testnet.
