@@ -265,10 +265,15 @@ async function run(path, payload, label) {
   } finally {
     job = null;
     $('busy').hidden = true;
-    await refreshPlans();
-    await load();
+    // A public RPC can refuse a read right after a job; keep trying so the page never shows a stale plan.
+    for (let i = 0; i < 6; i++) {
+      try { await refreshPlans(); await load(); break; } catch { await new Promise((r) => setTimeout(r, 1500 * (i + 1))); }
+    }
   }
 }
+
+// While idle, re-read the plan now and then, so a missed refresh heals on its own.
+setInterval(() => { if (!job && document.visibilityState === 'visible') load().catch(() => {}); }, 10_000);
 
 async function refreshPlans() {
   world = await api('/api/world');

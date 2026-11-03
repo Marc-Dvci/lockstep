@@ -6,7 +6,7 @@ import { createServer } from 'node:http';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { view, call, teraToGas, nearToYocto, sleep } from '../scripts/lib/near.js';
+import { view, call, teraToGas, nearToYocto, sleep, retryRead } from '../scripts/lib/near.js';
 import {
   pledgeKind, transferKind, propose, approve, analyse, allocationArgs, getPlan, topup, collectAll, disburse,
 } from '../scripts/lib/lockstep.js';
@@ -131,7 +131,7 @@ async function topupAction(planId, amount, line, step) {
 async function spendElsewhere(planId, daoKey, step) {
   // A rolled-back share leaves its proposal bond with the DAO (Sputnik returns bonds only
   // on success), so each failure demo costs the contract one bond. Keep a margin.
-  const acct = await w.rpc.query({ request_type: 'view_account', account_id: w.lockstep, finality: 'final' });
+  const acct = await retryRead(() => w.rpc.query({ request_type: 'view_account', account_id: w.lockstep, finality: 'final' }));
   const spare = BigInt(acct.amount) - BigInt(acct.storage_usage) * 10n ** 19n;
   if (spare < 3n * 10n ** 24n) throw new Error('the demo contract is low on testnet NEAR for proposal bonds; the failure demo is paused until it is topped up');
   const d = w.daos[daoKey];

@@ -14,23 +14,30 @@ export function provider(url) {
 const RATE_LIMITED = /429|rate limit|Too Many Requests/i;
 
 /** Retry a request that a public RPC rejected for rate limiting (the request did not execute). */
-export async function retry(fn, tries = 6) {
+export async function retry(fn, tries = 6, retryable = RATE_LIMITED) {
   for (let i = 0; ; i++) {
     try {
       return await fn();
     } catch (e) {
-      if (i >= tries - 1 || !RATE_LIMITED.test(String(e?.message || e))) throw e;
+      if (i >= tries - 1 || !retryable.test(String(e?.message || e))) throw e;
       await sleep(800 * 2 ** i);
     }
   }
 }
+
+// A read may also be retried when every endpoint failed or the network dropped: it has no effect.
+// Transactions are not retried on these, since a re-signed transaction could execute twice.
+const READ_RETRYABLE = /429|rate limit|Too Many Requests|Exceeded \d+ providers|RetriesExceeded|fetch failed|ECONNRESET|ETIMEDOUT|socket hang up|\b50[234]\b/i;
+
+/** Retry a read-only request on rate limits and transient network failures. */
+export const retryRead = (fn) => retry(fn, 6, READ_RETRYABLE);
 
 export function account(accountId, rpc, secretKey) {
   return new Account(accountId, rpc, secretKey);
 }
 
 export async function view(rpc, contractId, method, args = {}) {
-  return retry(() => rpc.callFunction({ contractId, method, args }));
+  return retryRead(() => rpc.callFunction({ contractId, method, args }));
 }
 
 /** Every failure in the transaction or any of its receipts, with the receipt id. */
