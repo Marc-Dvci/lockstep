@@ -1,0 +1,35 @@
+{
+  "network": "testnet",
+  "rpc": "https://test.rpc.fastnear.com",
+  "explorer": "https://testnet.nearblocks.io",
+  "created": "2026-11-03T14:46:23.353Z",
+  "lockstep": "lockstep.testnet",
+  "token": "tusd.lockstep.testnet",
+  "factory": "sputnikv2.testnet",
+  "daos": [
+    {
+      "id": "lockstep-events.sputnikv2.testnet",
+      "name": "Events DAO"
+    },
+    {
+      "id": "lockstep-builders.sputnikv2.testnet",
+      "name": "Builders DAO"
+    },
+    {
+      "id": "lockstep-community.sputnikv2.testnet",
+      "name": "Community DAO"
+    }
+  ],
+  "council": [
+    "alice.lockstep.testnet",
+    "bob.lockstep.testnet"
+  ],
+  "demoAccounts": {
+    "coordinator": "coordinator.lockstep.testnet",
+    "donor": "donor.lockstep.testnet",
+    "venue": "venue.lockstep.testnet",
+    "caterer": "caterer.lockstep.testnet",
+    "speaker": "speaker.lockstep.testnet",
+    "landlord": "landlord.lockstep.testnet"
+  }
+}

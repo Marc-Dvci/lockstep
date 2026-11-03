@@ -3,7 +3,7 @@
 //
 //   NETWORK=sandbox|testnet PORT=8787 node web/server.js
 import { createServer } from 'node:http';
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { view, call, teraToGas, nearToYocto, sleep } from '../scripts/lib/near.js';
@@ -16,11 +16,24 @@ const NETWORK = process.env.NETWORK || 'sandbox';
 const PORT = Number(process.env.PORT || 8787);
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const w = loadWorld(NETWORK);
+// The transaction log of each plan. A host's disk may be wiped on restart, so the
+// committed snapshot in deployments/ (tx hashes and labels only, no keys) seeds it.
 const STATE_FILE = DATA_DIR + `state-${NETWORK}.json`;
-const state = existsSync(STATE_FILE) ? JSON.parse(readFileSync(STATE_FILE, 'utf8')) : { current: null, plans: {} };
-const saveState = () => writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+const SNAPSHOT = fileURLToPath(new URL(`../deployments/log-${NETWORK}.json`, import.meta.url));
+const state = existsSync(STATE_FILE) ? JSON.parse(readFileSync(STATE_FILE, 'utf8'))
+  : existsSync(SNAPSHOT) ? JSON.parse(readFileSync(SNAPSHOT, 'utf8')) : { current: null, plans: {} };
+const saveState = () => { try { mkdirSync(DATA_DIR, { recursive: true }); writeFileSync(STATE_FILE, JSON.stringify(state, null, 2)); } catch { /* read-only disk: keep in memory */ } };
+// Plans created by anyone else on the contract still show up.
+async function syncPlans() {
+  try {
+    const plans = await view(w.rpc, w.lockstep, 'get_plans', { from_index: 0, limit: 50 });
+    for (const p of plans) state.plans[p.id] ||= { title: p.title, created: new Date(Number(BigInt(p.created_at) / 1_000_000n)).toISOString(), log: [] };
+    if (state.current === null && plans.length) state.current = plans[plans.length - 1].id;
+  } catch (e) { console.error('syncPlans', e.message); }
+}
+await syncPlans();
 
-const A = Object.fromEntries(Object.keys(w.accounts).map((k) => [k, w.acct(k)]));
+const A = Object.fromEntries(Object.keys(w.accounts).filter((k) => w.accounts[k].key).map((k) => [k, w.acct(k)]));
 const daoName = (id) => Object.values(w.daos).find((d) => d.id === id)?.name || id;
 const lineLabel = Object.fromEntries(DEMO.lines.map((l) => [l.key, l.label]));
 const txUrl = (hash) => (w.explorer && hash ? `${w.explorer}/txns/${hash}` : null);
@@ -40,6 +53,7 @@ function startJob(kind, planId, fn) {
     const s = { label, at: new Date().toISOString(), hash: r?.hash || null, url: txUrl(r?.hash), ok: r ? r.fails.length === 0 : true, ...extra };
     if (r && r.fails.length) s.failure = summariseFailure(r.fails);
     job.steps.push(s);
+    for (const k of [...cache.keys()]) if (k.startsWith('plan:')) cache.delete(k);
     const pid = job.planId;
     if (pid !== null && pid !== undefined) {
       (state.plans[pid] ||= { log: [] }).log.push({ job: kind, ...s });
@@ -60,6 +74,7 @@ function startJob(kind, planId, fn) {
     }
     job.finished = Date.now();
     job.ms = job.finished - job.started;
+    fresh();
   });
   return { job };
 }
@@ -114,6 +129,11 @@ async function topupAction(planId, amount, line, step) {
 }
 
 async function spendElsewhere(planId, daoKey, step) {
+  // A rolled-back share leaves its proposal bond with the DAO (Sputnik returns bonds only
+  // on success), so each failure demo costs the contract one bond. Keep a margin.
+  const acct = await w.rpc.query({ request_type: 'view_account', account_id: w.lockstep, finality: 'final' });
+  const spare = BigInt(acct.amount) - BigInt(acct.storage_usage) * 10n ** 19n;
+  if (spare < 3n * 10n ** 24n) throw new Error('the demo contract is low on testnet NEAR for proposal bonds; the failure demo is paused until it is topped up');
   const d = w.daos[daoKey];
   const amount = 250;
   const p = await propose(A.alice, d.id, `Pay ${amount} tUSD for another event's hall deposit`, transferKind(w.token, A.landlord.accountId, usd(amount)), w.rpc);
@@ -157,12 +177,31 @@ async function disburseAction(planId, step) {
 
 // --------------------------------------------------------------- read model
 
+// Cache reads: public RPCs rate-limit, and many viewers may poll the same plan.
+const cache = new Map();
+async function cached(key, ms, fn) {
+  const hit = cache.get(key);
+  if (hit?.pending) return hit.pending;
+  if (hit && Date.now() - hit.at < ms) return hit.value;
+  const pending = fn().then(
+    (value) => { cache.set(key, { at: Date.now(), value }); return value; },
+    (e) => { cache.delete(key); throw e; },
+  );
+  cache.set(key, { pending });
+  return pending;
+}
+const fresh = () => cache.clear();
+
 async function planView(planId) {
+  return cached('plan:' + planId, 4000, () => planViewUncached(planId));
+}
+
+async function planViewUncached(planId) {
   const plan = await getPlan(w.rpc, w.lockstep, planId);
   if (!plan) return null;
   const a = analyse(plan);
   const daos = await Promise.all(Object.values(w.daos).map(async (d) => {
-    const [bal, policy] = await Promise.all([balanceOf(w.rpc, w.token, d.id), view(w.rpc, d.id, 'get_policy')]);
+    const [bal, policy] = await Promise.all([balanceOf(w.rpc, w.token, d.id), cached('policy:' + d.id, 120000, () => view(w.rpc, d.id, 'get_policy'))]);
     const role = policy.roles.find((r) => r.kind?.Group?.includes(w.lockstep));
     return { id: d.id, name: d.name, balance: bal, role: role ? role.permissions : null, bond: policy.proposal_bond };
   }));

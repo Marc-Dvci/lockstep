@@ -250,11 +250,13 @@ async function run(path, payload, label) {
     $('busy').hidden = false;
     $('busyText').textContent = label;
     if (view) render();
+    let lastSteps = -1;
     for (;;) {
-      await new Promise((r) => setTimeout(r, 1500));
+      await new Promise((r) => setTimeout(r, 2000));
       job = await api(`/api/job/${id}`);
       if (job.planId !== null && job.planId !== undefined && job.planId !== planId) { planId = job.planId; await refreshPlans(); }
-      if (planId !== null) await load().catch(() => {});
+      // Re-read the plan only when a step landed on chain.
+      if (planId !== null && job.steps.length !== lastSteps) { lastSteps = job.steps.length; await load().catch(() => {}); } else if (view) renderLog();
       if (job.status === 'done' || job.status === 'failed') break;
     }
     if (job.status === 'failed') alert(job.error);

@@ -16,6 +16,32 @@ Built at NEAR HACKATHON (1–14 November 2026). Tracks: Social Money (`social`),
 
 ![The plan is 50 short on speaker travel although 1,150 is pledged for 1,000](docs/screens/01-gap.png)
 
+## Live on NEAR testnet
+
+| Account | Role |
+| --- | --- |
+| [`lockstep.testnet`](https://testnet.nearblocks.io/address/lockstep.testnet) | The Lockstep contract. **It has no access keys** (deleted in [J2pEK9vV…](https://testnet.nearblocks.io/txns/J2pEK9vVtS1rCurwmP8cXujyThSxcuGiE4m6hJq15fq4)), so nobody can redeploy it or sign for it. |
+| [`tusd.lockstep.testnet`](https://testnet.nearblocks.io/address/tusd.lockstep.testnet) | tUSD, a NEP-141 test token with no value (6 decimals). |
+| [`lockstep-events.sputnikv2.testnet`](https://testnet.nearblocks.io/address/lockstep-events.sputnikv2.testnet), [`lockstep-builders…`](https://testnet.nearblocks.io/address/lockstep-builders.sputnikv2.testnet), [`lockstep-community…`](https://testnet.nearblocks.io/address/lockstep-community.sputnikv2.testnet) | Three demo DAOs created through the `sputnikv2.testnet` factory, each with a two-member council and the Lockstep role installed by council vote. |
+
+Two complete stories are on chain:
+
+| Plan | What happened | Transactions |
+| --- | --- | --- |
+| #1, settled | Three pledges (500 venue, 250 travel, 400 food or venue) and a 50 travel top-up. Activation, then three transfer proposals filed and approved by Lockstep, one on each DAO. Payees paid 400, 300, 300. | [top-up](https://testnet.nearblocks.io/txns/AHsmP9DLDwG4TCNJLeykjvr1mW7sUAZeU9sZbWaiTCCk) · [activate](https://testnet.nearblocks.io/txns/GS4zJbLSLhpkHyKVtSyaX7TYh7yXjq8gMTNgbeskjKvj) · collect [Events](https://testnet.nearblocks.io/txns/CMBVcT3WWNPCEV971Wr8qUQp3hP7iv31AJrN62W1yi11), [Builders](https://testnet.nearblocks.io/txns/5EMVPabzyWdU73JeVGJDMfUr7dgPHMV25NxqhjDkNYSK), [Community](https://testnet.nearblocks.io/txns/AZZnrDJuhCAGZdagm5WLckBL8Xu5S9TRttkBeYFV9T5J) · [pay out](https://testnet.nearblocks.io/txns/Eu8dW7oSUma8sXoXsqyq7QGrEssCERLY8yeyFhjBhBFF) |
+| #2, rolled back | Same pledges and top-up. Before activation, Community DAO's council [paid 250 elsewhere](https://testnet.nearblocks.io/txns/8aE33gQyj7rFVK26kr1Z4Ev7ATC7SDF1iA8sMJE7rio). Its share transfer failed inside the DAO ("The account doesn't have enough balance"), the DAO marked the proposal `Failed`, and Lockstep read that back and rolled the plan back. Events DAO got 400 back, Builders DAO 250, the donor 50. | [activate](https://testnet.nearblocks.io/txns/8BfiNWkDz3CzVkav1be2gPRYHirPjBcVZPmnjXWuW5de) · collect [Events](https://testnet.nearblocks.io/txns/Gexcnqmkf2iQdAvu6MBL9QQrRLPrBrTLM8UKiCzsv8jU), [Builders](https://testnet.nearblocks.io/txns/43Q3CjjHckRLhSfV2xL7TksoVVL9Ai8BLFyRe1bLiKLb), [Community (fails)](https://testnet.nearblocks.io/txns/D8r1FbogVTV3YnDNTwoxuK1nNtvzwBe4uA6F3NL5f9Y3) · [check_share](https://testnet.nearblocks.io/txns/HHbnpxJDi2nkjw8MBig1Y1mPGE1UnX748Kn7gckxDqNP) · [refunds](https://testnet.nearblocks.io/txns/636yAtixjnQ4MUCq6UUFCg2azVhU9uVVv5bzXUA8c7kS) |
+
+Plan #0 stopped midway when the public RPC rate-limited the demo server. It stays open with two pledges, and `verify` checks its certificate like any other open plan. The demo server now fails over between two RPC endpoints and retries rate-limited requests.
+
+### Check it without keys (testnet)
+
+```bash
+git clone https://github.com/Marc-Dvci/lockstep && cd lockstep && npm ci
+npm run verify
+```
+
+Expected last line: `23 passed, 0 failed` (with 3 plans on chain; more plans add more checks). The first line confirms that `lockstep.testnet` has 0 access keys. If you build the contract (`npm run build`), the script also compares your build's hash with the deployed code hash. On 3 November both were `h3DSKfgiqkEMDHZtqYRs1BRiWhfi1DThNoSdyPf4zsg`.
+
 ## What NEAR does here
 
 | NEAR piece | What it does in Lockstep |
@@ -50,11 +76,11 @@ Requirements: Node 22+, Rust with `wasm32-unknown-unknown`, [cargo-near](https:/
 | Click **3 · Pay out** | **"Funded and paid."** Venue 400, caterer 300, speaker 300. Every line under "Checked in this browser" is ticked. |
 | Click **Start a new plan**, top up 50 for travel, click **Community DAO spends 250 elsewhere**, then Activate and Collect | **"Rolled back. Nobody paid for part of a plan."** Community DAO's proposal is marked `Failed` by the DAO itself; Events and Builders DAO are owed 400 and 250 back, the donor 50. |
 | Click **3 · Pay out** | Every refund is shown as *Paid*. Each DAO treasury is back where it started. |
-| `npm run verify -- sandbox` | `21 passed, 0 failed`: every plan checked against public chain state (below). |
+| `npm run verify -- sandbox` | `21 passed, 0 failed`: every plan on your sandbox checked against chain state (see below). |
 
 With the demo server running, `CHROME=<path to a Chromium or chrome-headless-shell> npm run test:ui` drives the same two stories in headless Chromium and fails on any page error. It checks the page at 1280 px and at 390 px (no horizontal scroll). Screenshots from that run are in [docs/screens](docs/screens).
 
-## Check it without keys
+## What `verify` checks
 
 `scripts/verify.js` reads only public chain state:
 
@@ -108,6 +134,7 @@ The contract does not trust the engine: it accepts any allocation that is feasib
 - A DAO that installs the role trusts Lockstep's code to file and approve transfer proposals **to Lockstep only, for shares its council pledged by vote**. Lockstep enforces the pledge caps; Sputnik cannot express an amount limit on a role.
 - Tokens sit in Lockstep only between collection and payout, or as escrowed top-ups until the plan closes.
 - A pledge is not a lock. A DAO can spend the money elsewhere before activation; the plan then rolls back and nobody pays. The demo shows this on purpose.
+- A proposal bond is attached by Lockstep when it files a share's transfer proposal. Sputnik returns it when the proposal succeeds and keeps it when the transfer fails, so each rolled-back share costs the Lockstep account one bond (1 NEAR on the demo DAOs). The demo server pauses the failure demo when the contract runs low; anyone can send it testnet NEAR.
 - Funded, paid and delivered are different things. Lockstep records the first two; whether the evening took place is outside the chain.
 
 ## Tests
@@ -124,6 +151,17 @@ The contract does not trust the engine: it accepts any allocation that is feasib
 | Spoofed token, non-DAO pledge, fake share sent by a plain account through the real token: all refused, tokens refunded | e2e |
 | Failed payout stays retryable and pays once; duplicate callback rejected | `contract/src/tests.rs` |
 | Expiry before activation refunds top-ups; collection window closing rolls back | `contract/src/tests.rs` |
+
+### Measured on NEAR testnet (3 November 2026, headless browser driving the demo page)
+
+| What | Measured |
+| --- | --- |
+| Preparing a demo plan: 4 mints, the plan, 3 pledge proposals with 2 council votes each | 53 s and 69 s |
+| Top-up, from click to final | 6.4 s |
+| Activate | 6.5 s |
+| Collecting three shares (settled plan) | 47.0 s |
+| Collecting three shares, one of which fails, plus the status check (rolled-back plan) | 44.7 s |
+| Paying out three claims | 7.3 s |
 
 ### Measured on the local sandbox (3 November 2026)
 
