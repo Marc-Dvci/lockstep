@@ -1,0 +1,19 @@
+{
+  "name": "lockstep",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test core/",
+    "test:contract": "cargo test -p lockstep",
+    "build": "cd contract && cargo near build non-reproducible-wasm --no-abi && cd ../token && cargo near build non-reproducible-wasm --no-abi",
+    "test:e2e": "node --test --test-timeout=900000 tests/e2e.test.js",
+    "fetch:sputnik": "node scripts/fetch-sputnik.js"
+  },
+  "dependencies": {
+    "near-api-js": "^7.4.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

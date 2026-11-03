@@ -1,0 +1,3 @@
+[build]
+jobs = 6
+incremental = false
