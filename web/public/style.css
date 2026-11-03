@@ -86,7 +86,7 @@ h1 { font-size: clamp(1.6rem, 4.2vw, 2.5rem); line-height: 1.15; font-weight: 70
 .sub { margin: 12px 0 0; color: var(--ink-2); font-size: 1.05rem; max-width: 64ch; }
 
 /* cost lines */
-.line { display: grid; grid-template-columns: minmax(110px, 170px) 1fr minmax(84px, auto); gap: 6px 16px; align-items: center; padding: 10px 0; }
+.line { display: grid; grid-template-columns: minmax(120px, 220px) 1fr minmax(64px, auto); gap: 6px 16px; align-items: center; padding: 10px 0; }
 .line .name { font-weight: 600; }
 .line .name small { display: block; font-weight: 400; color: var(--ink-3); font-size: 0.8rem; }
 .line .amt { text-align: right; font-weight: 600; }
