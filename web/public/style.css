@@ -56,6 +56,7 @@ h2 { font-size: 1.05rem; font-weight: 600; }
 .net b { color: var(--ink-2); font-weight: 600; }
 
 main { max-width: 1080px; margin: 0 auto; padding: 0 16px 48px; }
+.readonly { max-width: 1080px; margin: 12px auto 0; padding: 0 16px; color: var(--ink-2); font-size: 0.9rem; }
 section { padding: 28px 0; border-bottom: 1px solid var(--rule); }
 .sectionhead { margin-bottom: 16px; }
 .sectionhead p { margin: 4px 0 0; font-size: 0.92rem; max-width: 62ch; }

@@ -1,0 +1,13 @@
+# docker compose up: the demo page on http://127.0.0.1:7860, read-only against NEAR testnet.
+# To run the demo actions, put WORLD_JSON_B64=... (base64 of a seeded world file) in .env.
+services:
+  demo:
+    build: .
+    ports:
+      - "127.0.0.1:7860:7860"
+    environment:
+      WORLD_JSON_B64: ${WORLD_JSON_B64:-}
+    volumes:
+      - demo-state:/app/web/.data
+volumes:
+  demo-state:

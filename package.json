@@ -12,7 +12,9 @@
     "verify": "node scripts/verify.js",
     "seed": "node scripts/seed.js",
     "start": "node web/server.js",
-    "test:ui": "node tests/ui.drive.js"
+    "test:ui": "node tests/ui.drive.js",
+    "lint": "eslint .",
+    "coverage": "node --test --experimental-test-coverage --test-coverage-include=core/gap.js --test-coverage-lines=95 --test-coverage-branches=85 \"core/*.test.js\""
   },
   "dependencies": {
     "near-api-js": "^7.4.0"
@@ -21,6 +23,9 @@
     "node": ">=22"
   },
   "devDependencies": {
+    "@eslint/js": "9.39.1",
+    "eslint": "9.39.1",
+    "globals": "16.5.0",
     "playwright-core": "^1.64.1"
   }
 }

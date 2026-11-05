@@ -34,6 +34,9 @@ async function syncPlans() {
 await syncPlans();
 
 const A = Object.fromEntries(Object.keys(w.accounts).filter((k) => w.accounts[k].key).map((k) => [k, w.acct(k)]));
+// Without demo keys (no WORLD_JSON_B64 and no seeded world), the page reads the live plans and the actions are off.
+const READ_ONLY = !A.coordinator;
+const READ_ONLY_ERROR = 'This copy is read-only: it has no demo keys. It shows the live plans; the hosted demo runs the actions.';
 const daoName = (id) => Object.values(w.daos).find((d) => d.id === id)?.name || id;
 const lineLabel = Object.fromEntries(DEMO.lines.map((l) => [l.key, l.label]));
 const txUrl = (hash) => (w.explorer && hash ? `${w.explorer}/txns/${hash}` : null);
@@ -245,8 +248,8 @@ const server = createServer(async (req, res) => {
     if (req.method === 'GET' && p === '/api/world') {
       return json(res, 200, {
         network: NETWORK, explorer: w.explorer, lockstep: w.lockstep, token: w.token, factory: w.factory,
-        daos: Object.values(w.daos), council: [A.alice.accountId, A.bob.accountId], coordinator: A.coordinator.accountId,
-        donor: A.donor.accountId, current: state.current, plans: Object.entries(state.plans).map(([id, v]) => ({ id: Number(id), title: v.title })),
+        daos: Object.values(w.daos), council: [w.accounts.alice.id, w.accounts.bob.id], coordinator: w.accounts.coordinator.id,
+        donor: w.accounts.donor.id, readOnly: READ_ONLY, current: state.current, plans: Object.entries(state.plans).map(([id, v]) => ({ id: Number(id), title: v.title })),
         demo: DEMO,
       });
     }
@@ -258,6 +261,7 @@ const server = createServer(async (req, res) => {
       const j = jobs.get(p.split('/')[3]);
       return j ? json(res, 200, j) : json(res, 404, { error: 'no such job' });
     }
+    if (req.method === 'POST' && READ_ONLY) return json(res, 503, { error: READ_ONLY_ERROR });
     if (req.method === 'POST' && p === '/api/plans') {
       const r = startJob('prepare', null, preparePlan);
       return r.error ? json(res, r.status, r) : json(res, 202, { job: r.job.id });
@@ -291,5 +295,5 @@ const server = createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => console.log(`Lockstep demo on http://127.0.0.1:${PORT} (${NETWORK}, contract ${w.lockstep})`));
+server.listen(PORT, () => console.log(`Lockstep demo on http://127.0.0.1:${PORT} (${NETWORK}, contract ${w.lockstep}${READ_ONLY ? ', read-only' : ''})`));
 export { sleep };

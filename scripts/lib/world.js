@@ -39,12 +39,33 @@ export function worldPath(network) {
   return DATA_DIR + `world-${network}.json`;
 }
 
+/**
+ * The public deployment record in deployments/<network>.json, in the world's shape and without keys.
+ * A server started from it reads the live plans and refuses the demo actions.
+ */
+export function publicWorld(d) {
+  const ids = { lockstep: d.lockstep, token: d.token, alice: d.council[0], bob: d.council[1], ...d.demoAccounts };
+  return {
+    network: d.network,
+    created: d.created,
+    accounts: Object.fromEntries(Object.entries(ids).map(([k, id]) => [k, { id }])),
+    daos: Object.fromEntries(DEMO.daos.map((dao, i) => [dao.key, { id: d.daos[i].id, name: d.daos[i].name }])),
+    explorer: d.explorer,
+    token: d.token,
+    lockstep: d.lockstep,
+    factory: d.factory,
+  };
+}
+
 export function loadWorld(network) {
-  // On a host, the world (with its testnet demo keys) comes from WORLD_JSON_B64.
+  // On a host, the world (with its testnet demo keys) comes from WORLD_JSON_B64. Without keys, the
+  // committed public deployment record gives a read-only world.
   const p = worldPath(network);
+  const pub = fileURLToPath(new URL(`../../deployments/${network}.json`, import.meta.url));
   let w;
   if (process.env.WORLD_JSON_B64) w = JSON.parse(Buffer.from(process.env.WORLD_JSON_B64, 'base64').toString('utf8'));
   else if (existsSync(p)) w = JSON.parse(readFileSync(p, 'utf8'));
+  else if (existsSync(pub)) w = publicWorld(JSON.parse(readFileSync(pub, 'utf8')));
   else throw new Error(`no world for ${network}: run node scripts/seed.js ${network}, or set WORLD_JSON_B64`);
   const rpc = provider(NETWORKS[network].rpc);
   const acct = (name) => account(w.accounts[name].id, rpc, w.accounts[name].key);

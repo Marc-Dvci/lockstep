@@ -1,0 +1,85 @@
+# On every push: lint, the gap engine's tests with coverage, the contract's tests with coverage, spelling and
+# Markdown links, and the Docker image started and asked for the live plans. Read-only: nothing here writes to the
+# repository.
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - name: Gap engine tests, with line and branch coverage
+        shell: bash
+        run: npm run coverage 2>&1 | tee coverage.log
+      - name: Summary on the run page
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### Gap engine: core/gap.js"
+            echo
+            echo '```'
+            grep -E "^ℹ (tests|pass|fail|skipped) " coverage.log || true
+            sed -n '/start of coverage report/,/end of coverage report/p' coverage.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@cargo-llvm-cov
+      - name: Contract tests, with coverage of contract/src/lib.rs
+        shell: bash
+        run: cargo llvm-cov -p lockstep --ignore-filename-regex 'tests\.rs' --summary-only 2>&1 | tee contract.log
+      - name: Summary on the run page
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### Contract: contract/src/lib.rs"
+            echo
+            echo '```'
+            grep -E "^test result|Filename|lib\.rs|TOTAL" contract.log || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install codespell==2.4.1
+      - name: Spelling
+        run: codespell README.md SECURITY.md
+      - name: Links and anchors in the Markdown files
+        run: python scripts/check_links.py
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t lockstep .
+      - name: The image starts without keys and serves the live testnet plans read-only
+        run: |
+          docker run -d --name demo -p 127.0.0.1:7860:7860 lockstep
+          for i in $(seq 1 30); do curl -fs http://127.0.0.1:7860/api/world > world.json && break; sleep 2; done
+          python3 -c "import json; d = json.load(open('world.json')); assert d['readOnly'] is True and d['lockstep'] == 'lockstep.testnet' and len(d['plans']) >= 7, d; print(len(d['plans']), 'plans, read-only')"
+          curl -fs http://127.0.0.1:7860/ | grep -q '<title>Lockstep'
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:7860/api/plans)" = 503
+      - if: failure()
+        run: docker logs demo

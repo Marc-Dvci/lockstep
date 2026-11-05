@@ -45,7 +45,7 @@ const labelOf = (plan, key) => plan.lines.find((l) => l.key === key)?.label || k
 // --------------------------------------------------------------------- render
 
 function render() {
-  const { plan, analysis, daos } = view;
+  const { plan, daos } = view;
   const g = graph(plan);
   const live = solve(g.lines, g.sources);
   const allocation = plan.status === 'Open' ? live.allocation.map((a) => ({ ...a, amount: BigInt(a.amount) })) : plan.allocation.map((a) => ({ source: a.source, line: a.line, amount: BigInt(a.amount) }));
@@ -145,6 +145,7 @@ function render() {
   $('topupBtn').disabled = busy || !open;
   $('spendBtn').disabled = busy || !open;
   $('newPlan').disabled = busy;
+  if (world.readOnly) for (const id of ['activateBtn', 'collectBtn', 'payBtn', 'topupBtn', 'spendBtn', 'newPlan']) $(id).disabled = true;
 
   $('outcome').innerHTML = plan.claims.length
     ? `<h2>${plan.status === 'Settled' ? 'Payouts' : 'Refunds'}</h2><ul class="claims">${plan.claims.map((c) => `<li><span>${c.kind === 'Payout' ? 'Pay' : 'Refund'} <b>${fmt(c.amount)} tUSD</b> to ${esc(nameOf(c.to))}</span><span class="${c.state}">${{ Paid: 'Paid', Pending: 'Owed', InFlight: 'Sending' }[c.state]}</span></li>`).join('')}</ul>`
@@ -277,6 +278,7 @@ setInterval(() => { if (!job && document.visibilityState === 'visible') load().c
 
 async function refreshPlans() {
   world = await api('/api/world');
+  $('readOnlyNote').hidden = !world.readOnly;
   const sel = $('planSel');
   sel.innerHTML = world.plans.slice().reverse().map((p) => `<option value="${p.id}">#${p.id} · ${esc(p.title)}</option>`).join('');
   if (planId !== null) sel.value = String(planId);

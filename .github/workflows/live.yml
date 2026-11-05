@@ -1,0 +1,42 @@
+# During judging, every six hours: the hosted demo answers with the live plans, and `npm run verify` rechecks every
+# plan on NEAR testnet from public chain state, without keys. It writes nothing to the repository and ends itself
+# after RESULTS_DATE.
+name: live
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  LIVE_URL: https://lockstep-f45z2r7dda-ew.a.run.app
+  RESULTS_DATE: "2026-11-25"
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - id: date
+        name: Within the judging window
+        run: |
+          if [ "$(date -u +%F)" \> "$RESULTS_DATE" ]; then echo "past=true" >> "$GITHUB_OUTPUT"; echo "Past the results date."; fi
+      - if: steps.date.outputs.past != 'true'
+        name: The hosted demo answers with the live plans
+        run: |
+          curl -fsS --retry 3 --retry-delay 10 --max-time 60 "$LIVE_URL/api/world" > world.json
+          python3 -c "import json; d = json.load(open('world.json')); assert d['readOnly'] is False and len(d['plans']) >= 7, d; print(len(d['plans']), 'plans, actions on')"
+          curl -fsS --max-time 60 "$LIVE_URL/" | grep -q '<title>Lockstep'
+      - if: steps.date.outputs.past != 'true'
+        uses: actions/checkout@v4
+      - if: steps.date.outputs.past != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - if: steps.date.outputs.past != 'true'
+        run: npm ci --omit=dev
+      - if: steps.date.outputs.past != 'true'
+        name: Every plan on NEAR testnet rechecked from public chain state
+        shell: bash
+        run: |
+          npm run verify 2>&1 | tee verify.log
+          { echo "### npm run verify (NEAR testnet, no keys)"; echo; echo '```'; tail -n 1 verify.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

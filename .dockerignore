@@ -1,0 +1,10 @@
+# Allowlist: only what the demo server needs.
+*
+!package.json
+!package-lock.json
+!core/
+!scripts/
+!web/
+!deployments/
+web/.data
+**/*.test.js

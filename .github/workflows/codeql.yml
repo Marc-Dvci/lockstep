@@ -1,0 +1,32 @@
+# Static analysis of the contract, the scripts and page, and these workflows. Its runs and badge are public; its
+# alerts are visible only to people with write access.
+name: codeql
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "41 5 * * 1"
+permissions:
+  contents: read
+jobs:
+  analyze:
+    if: github.event.repository.private == false
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript, rust, actions]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:${{ matrix.language }}

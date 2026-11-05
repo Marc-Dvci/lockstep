@@ -36,7 +36,7 @@ if (existsSync(local)) {
 try {
   const meta = await view(rpc, dep.lockstep, 'contract_source_metadata');
   ok(!!meta && (meta.link || meta.version), `NEP-330 source metadata published: ${JSON.stringify({ version: meta.version, link: meta.link, standards: meta.standards?.map((s) => `${s.standard} ${s.version}`) })}`);
-} catch (e) {
+} catch {
   ok(false, 'NEP-330 contract_source_metadata view');
 }
 const cfg = await view(rpc, dep.lockstep, 'get_config');
