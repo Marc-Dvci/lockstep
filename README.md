@@ -3,6 +3,7 @@
 [![CodeQL](https://github.com/Marc-Dvci/lockstep/actions/workflows/codeql.yml/badge.svg)](https://github.com/Marc-Dvci/lockstep/actions/workflows/codeql.yml)
 ![tests: 33 passing](https://img.shields.io/badge/tests-33%20passing-2ea44f)
 ![gap engine coverage: 100% of lines, 89% of branches](https://img.shields.io/badge/gap%20engine%20coverage-100%25%20lines%20%C2%B7%2089%25%20branches-2ea44f)
+![contract coverage: 91% of lines](https://img.shields.io/badge/contract%20coverage-91%25%20of%20lines-2ea44f)
 ![verify on testnet: 65 passed, 0 failed](https://img.shields.io/badge/verify%20on%20testnet-65%20passed%2C%200%20failed-2ea44f)
 [![licence: MIT](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 [![live demo](https://img.shields.io/badge/demo-live%20on%20NEAR%20testnet-1f5eff)](https://lockstep-f45z2r7dda-ew.a.run.app)
@@ -157,7 +158,7 @@ Plans #3 to #8 repeat the same two stories through the demo page: #3, #5 and #7 
 
 ### Claims and the tests behind them
 
-33 tests: 7 for the gap engine, 21 for the contract, 5 end-to-end on a local sandbox with real Sputnik DAOs and real votes. The gap engine's tests cover 100% of its lines and 89% of its branches (`npm run coverage`; CI fails below 95% of lines or 85% of branches). CI also reports the contract's coverage on its run page.
+33 tests: 7 for the gap engine, 21 for the contract, 5 end-to-end on a local sandbox with real Sputnik DAOs and real votes. The gap engine's tests cover 100% of its lines and 89% of its branches (`npm run coverage`; CI fails below 95% of lines or 85% of branches). The contract's tests cover 90.8% of the lines of `contract/src/lib.rs` (`cargo llvm-cov -p lockstep`; CI fails below 85%).
 
 | Claim | Code | Test |
 | --- | --- | --- |

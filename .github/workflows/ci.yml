@@ -45,7 +45,7 @@ jobs:
       - uses: taiki-e/install-action@cargo-llvm-cov
       - name: Contract tests, with coverage of contract/src/lib.rs
         shell: bash
-        run: cargo llvm-cov -p lockstep --ignore-filename-regex 'tests\.rs' --summary-only 2>&1 | tee contract.log
+        run: cargo llvm-cov -p lockstep --ignore-filename-regex 'tests\.rs' --summary-only --fail-under-lines 85 2>&1 | tee contract.log
       - name: Summary on the run page
         if: always()
         shell: bash
