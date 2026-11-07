@@ -8,7 +8,9 @@
 [![licence: MIT](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 [![live demo](https://img.shields.io/badge/demo-live%20on%20NEAR%20testnet-1f5eff)](https://lockstep-f45z2r7dda-ew.a.run.app)
 
-[![The Lockstep demo page: 1,150 tUSD pledged for a 1,000 plan, and still 50 short, because only Builders DAO may pay for speaker travel](docs/screens/top/01-gap.png)](https://lockstep-f45z2r7dda-ew.a.run.app)
+[![Lockstep, the film (2:00): the demo page says 1,150 tUSD pledged for a 1,000 plan, and still 50 short, because only Builders DAO may pay for speaker travel; a play button](docs/film-thumbnail.png)](https://youtu.be/Fvwn0QpIKu0)
+
+**Watch the film (2:00): https://youtu.be/Fvwn0QpIKu0**
 
 # Lockstep
 
@@ -18,7 +20,7 @@ I built Lockstep solo at NEAR HACKATHON. I am Marc Donovici, a technology audito
 
 | Try it | Tracks | Built with | On chain on 5 November |
 | --- | --- | --- | --- |
-| [Live demo, no account](https://lockstep-f45z2r7dda-ew.a.run.app) · `npm run verify` | Social Money (`social`), Real-World Money (`realworld`) | Rust `near-sdk` 5.30 · Sputnik DAO v2 · NEP-141 · `near-api-js` 7.4 | 9 plans: 4 settled, 4 rolled back, 1 open; `verify` 65 passed, 0 failed |
+| [Live demo, no account](https://lockstep-f45z2r7dda-ew.a.run.app) · [the film, 2:00](https://youtu.be/Fvwn0QpIKu0) · `npm run verify` | Social Money (`social`), Real-World Money (`realworld`) | Rust `near-sdk` 5.30 · Sputnik DAO v2 · NEP-141 · `near-api-js` 7.4 | 9 plans: 4 settled, 4 rolled back, 1 open; `verify` 65 passed, 0 failed |
 
 [For judges](#for-judges) · [See it work](#see-it-work) · [The problem](#the-problem) · [How it works](#how-it-works) · [What NEAR does here](#what-near-does-here) · [Trust boundary](#trust-boundary-what-it-will-not-do) · [Evidence](#evidence) · [Run it](#run-it)
 
