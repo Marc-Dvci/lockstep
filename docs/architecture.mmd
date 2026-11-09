@@ -1,9 +1,9 @@
 flowchart TB
-  A["<b>1. Each DAO's council votes a pledge</b><br/>a FunctionCall proposal calls lockstep.pledge(cap, lines)<br/>No money moves: it stays in the DAO's treasury"]
+  A["<b>1. Each DAO's council votes a pledge</b><br/>the DAO files its own Transfer proposal to Lockstep<br/>anyone registers it; no money moves"]
   B["<b>2. The page computes the gap</b><br/>max-flow over pledges and permitted lines,<br/>with a min-cut certificate anyone can recheck"]
-  C["<b>3. Anyone tops up the exact gap</b><br/>ft_transfer_call, held in escrow by lockstep.testnet"]
+  C["<b>3. Anyone tops up the exact gap</b><br/>ft_transfer_call, held in escrow by lockstep-v2.testnet"]
   D["<b>4. activate(allocation)</b><br/>every line covered exactly, each pledge within its cap"]
-  E["<b>5. collect, on each DAO</b><br/>Lockstep files and approves a Transfer proposal<br/>through the one-member role the DAO installed by vote"]
+  E["<b>5. collect, on each DAO</b><br/>Lockstep approves the DAO's own proposal<br/>with a role that may only approve<br/>it keeps the share; the rest goes back"]
   F{"Did every share arrive?"}
   G["<b>Settled</b><br/>disburse pays every payee"]
   H["<b>Rolled back</b><br/>disburse refunds everything that arrived"]

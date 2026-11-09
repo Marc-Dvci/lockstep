@@ -1,0 +1,29 @@
+{
+  "measured": {
+    "collect_ms": 25495,
+    "collect_gas_tgas": [
+      22,
+      22,
+      22
+    ],
+    "settled_plan": 0,
+    "rollback_reason": "the DAO's transfer failed: its treasury no longer holds the pledged amount",
+    "rollback_steps": [
+      "collect:events",
+      "collect:builders",
+      "collect:community",
+      "check_share:community"
+    ],
+    "rolled_back_plan": 1
+  },
+  "network": "http://127.0.0.1:3030",
+  "accounts": {
+    "lockstep": "lockstep.test.near",
+    "token": "tusd.test.near",
+    "daos": [
+      "events.sputnik.test.near",
+      "builders.sputnik.test.near",
+      "community.sputnik.test.near"
+    ]
+  }
+}

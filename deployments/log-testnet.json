@@ -1,0 +1,412 @@
+{
+  "current": 1,
+  "plans": {
+    "0": {
+      "title": "Builders' night",
+      "created": "2026-11-09T15:28:27.947Z",
+      "log": [
+        {
+          "job": "prepare",
+          "label": "Coordinator proposes \"Builders' night\": venue 400, food 300, speaker travel 300",
+          "at": "2026-11-09T15:28:30.568Z",
+          "hash": "AXWC3k7uJJKSEDynZ36hrNtcJukKLRaTawcyKMnMkWm7",
+          "url": "https://testnet.nearblocks.io/txns/AXWC3k7uJJKSEDynZ36hrNtcJukKLRaTawcyKMnMkWm7",
+          "ok": true
+        },
+        {
+          "job": "prepare",
+          "label": "Events DAO: a council member proposes a pledge of 500 for venue (proposal #19)",
+          "at": "2026-11-09T15:28:43.618Z",
+          "hash": "3eAVMbKwZ9qzFNg5nfJL2YWKCTwRYxaiVZTQdz8UYStP",
+          "url": "https://testnet.nearblocks.io/txns/3eAVMbKwZ9qzFNg5nfJL2YWKCTwRYxaiVZTQdz8UYStP",
+          "ok": true
+        },
+        {
+          "job": "prepare",
+          "label": "Events DAO: council member 1 of 2 votes yes",
+          "at": "2026-11-09T15:28:43.618Z",
+          "hash": "Hao1UTUamo6euETdqWpSP2cyqzscqAgJ5Yjc6y9hk6ZE",
+          "url": "https://testnet.nearblocks.io/txns/Hao1UTUamo6euETdqWpSP2cyqzscqAgJ5Yjc6y9hk6ZE",
+          "ok": true
+        },
+        {
+          "job": "prepare",
+          "label": "Events DAO: council member 2 of 2 votes yes, and the DAO files its own transfer proposal #20 to Lockstep",
+          "at": "2026-11-09T15:28:43.618Z",
+          "hash": "8Dy8NrJkcFu3Lw4TEHxPS8jxnYYH4CcMQJSkDs2Ay295",
+          "url": "https://testnet.nearblocks.io/txns/8Dy8NrJkcFu3Lw4TEHxPS8jxnYYH4CcMQJSkDs2Ay295",
+          "ok": true
+        },
+        {
+          "job": "prepare",
+          "label": "Lockstep reads Events DAO's proposal #20 back from the DAO and records the pledge",
+          "at": "2026-11-09T15:28:48.196Z",
+          "hash": "DE19AUtYuYGCQEX9VZSiFaLRMb41FGYb9mgZGBCPUbCh",
+          "url": "https://testnet.nearblocks.io/txns/DE19AUtYuYGCQEX9VZSiFaLRMb41FGYb9mgZGBCPUbCh",
+          "ok": true
+        },
+        {
+          "job": "prepare",
+          "label": "Builders DAO: a council member proposes a pledge of 250 for speaker travel (proposal #19)",
+          "at": "2026-11-09T15:29:00.736Z",
+          "hash": "J3Mj3zrtf6NKooqpEJhVQJtEDB5YS62dDZkoaedxyDbG",
+          "url": "https://testnet.nearblocks.io/txns/J3Mj3zrtf6NKooqpEJhVQJtEDB5YS62dDZkoaedxyDbG",
+          "ok": true
+        },
+        {
+          "job": "prepare",
+          "label": "Builders DAO: council member 1 of 2 votes yes",
+          "at": "2026-11-09T15:29:00.737Z",
+          "hash": "B1SjWsw6z6bhF6jyzSEVaLpNQ7uRrM5fvNUUK32ULRXR",
+          "url": "https://testnet.nearblocks.io/txns/B1SjWsw6z6bhF6jyzSEVaLpNQ7uRrM5fvNUUK32ULRXR",
+          "ok": true
+        },
+        {
+          "job": "prepare",
+          "label": "Builders DAO: council member 2 of 2 votes yes, and the DAO files its own transfer proposal #20 to Lockstep",
+          "at": "2026-11-09T15:29:00.737Z",
+          "hash": "DEvPVQ5xjq4gPcYZTxzaB4hrYx1fatsoqpan7ebFjwgn",
+          "url": "https://testnet.nearblocks.io/txns/DEvPVQ5xjq4gPcYZTxzaB4hrYx1fatsoqpan7ebFjwgn",
+          "ok": true
+        },
+        {
+          "job": "prepare",
+          "label": "Lockstep reads Builders DAO's proposal #20 back from the DAO and records the pledge",
+          "at": "2026-11-09T15:29:06.209Z",
+          "hash": "BW8AzfRYrst1tQ2kB8kmzmNZ1htLXTF23REctWNeqatb",
+          "url": "https://testnet.nearblocks.io/txns/BW8AzfRYrst1tQ2kB8kmzmNZ1htLXTF23REctWNeqatb",
+          "ok": true
+        },
+        {
+          "job": "prepare",
+          "label": "Community DAO: a council member proposes a pledge of 400 for food or venue (proposal #22)",
+          "at": "2026-11-09T15:29:20.133Z",
+          "hash": "ERdCHXAGtP82y5CT94SZacQVbVk2H3sjpthZ6xmY49Tu",
+          "url": "https://testnet.nearblocks.io/txns/ERdCHXAGtP82y5CT94SZacQVbVk2H3sjpthZ6xmY49Tu",
+          "ok": true
+        },
+        {
+          "job": "prepare",
+          "label": "Community DAO: council member 1 of 2 votes yes",
+          "at": "2026-11-09T15:29:20.133Z",
+          "hash": "9E8bHZVxraVifgHnHZ2WkJGsgK8Jf1AmdLnrrRi8riCx",
+          "url": "https://testnet.nearblocks.io/txns/9E8bHZVxraVifgHnHZ2WkJGsgK8Jf1AmdLnrrRi8riCx",
+          "ok": true
+        },
+        {
+          "job": "prepare",
+          "label": "Community DAO: council member 2 of 2 votes yes, and the DAO files its own transfer proposal #23 to Lockstep",
+          "at": "2026-11-09T15:29:20.133Z",
+          "hash": "2yPsDzkk65Efqv4ennbdyhXRhnq6Be7LUyc31EvEV4B3",
+          "url": "https://testnet.nearblocks.io/txns/2yPsDzkk65Efqv4ennbdyhXRhnq6Be7LUyc31EvEV4B3",
+          "ok": true
+        },
+        {
+          "job": "prepare",
+          "label": "Lockstep reads Community DAO's proposal #23 back from the DAO and records the pledge",
+          "at": "2026-11-09T15:29:24.963Z",
+          "hash": "6PBaZ9BmpTvQCKUa9qxKwaAxKjiQznregdjc3RW7nMC3",
+          "url": "https://testnet.nearblocks.io/txns/6PBaZ9BmpTvQCKUa9qxKwaAxKjiQznregdjc3RW7nMC3",
+          "ok": true
+        },
+        {
+          "job": "topup",
+          "label": "Donor tops up 50 tUSD for Speaker travel (held in escrow until the plan settles)",
+          "at": "2026-11-09T15:29:32.211Z",
+          "hash": "FcKrCi3GAJoXMbRgXy1HBBEBoc3sGq2CQqGSnk5Dfger",
+          "url": "https://testnet.nearblocks.io/txns/FcKrCi3GAJoXMbRgXy1HBBEBoc3sGq2CQqGSnk5Dfger",
+          "ok": true
+        },
+        {
+          "job": "activate",
+          "label": "Activate: the contract checks that every cost line is covered exactly, within each pledge's cap and permitted lines",
+          "at": "2026-11-09T15:29:38.364Z",
+          "hash": "7y6hSZYSmGovnfFLHn6y4Yqkg2mqpXcEZ6AX8j1ZJiH",
+          "url": "https://testnet.nearblocks.io/txns/7y6hSZYSmGovnfFLHn6y4Yqkg2mqpXcEZ6AX8j1ZJiH",
+          "ok": true
+        },
+        {
+          "job": "collect",
+          "label": "Collect from Events DAO: Lockstep reads the DAO's own pledge proposal and approves it with its role",
+          "at": "2026-11-09T15:30:05.100Z",
+          "hash": "HXp7NjGiE2rJgdcAJ2opzrDJDWoZWxcktMLsc2NAh4W5",
+          "url": "https://testnet.nearblocks.io/txns/HXp7NjGiE2rJgdcAJ2opzrDJDWoZWxcktMLsc2NAh4W5",
+          "ok": true,
+          "events": [
+            "collect_requested",
+            "approving",
+            "share_arrived"
+          ]
+        },
+        {
+          "job": "collect",
+          "label": "Collect from Builders DAO: Lockstep reads the DAO's own pledge proposal and approves it with its role",
+          "at": "2026-11-09T15:30:05.101Z",
+          "hash": "CHJttL7V7cym4UnMCpSqzn88iqMRfBDoWGSuJ5bvo5c9",
+          "url": "https://testnet.nearblocks.io/txns/CHJttL7V7cym4UnMCpSqzn88iqMRfBDoWGSuJ5bvo5c9",
+          "ok": true,
+          "events": [
+            "collect_requested",
+            "approving",
+            "share_arrived"
+          ]
+        },
+        {
+          "job": "collect",
+          "label": "Collect from Community DAO: Lockstep reads the DAO's own pledge proposal and approves it with its role",
+          "at": "2026-11-09T15:30:05.101Z",
+          "hash": "Ah8GFy6xZxu2NdHdDVrCzWX3ZcKfDVahM9Gr6JA3Z7fU",
+          "url": "https://testnet.nearblocks.io/txns/Ah8GFy6xZxu2NdHdDVrCzWX3ZcKfDVahM9Gr6JA3Z7fU",
+          "ok": true,
+          "events": [
+            "collect_requested",
+            "approving",
+            "share_arrived",
+            "settled"
+          ]
+        },
+        {
+          "job": "collect",
+          "label": "Every share arrived: plan settled (26.0 s)",
+          "at": "2026-11-09T15:30:05.170Z",
+          "hash": null,
+          "url": null,
+          "ok": true
+        },
+        {
+          "job": "disburse",
+          "label": "Pay the payees (anyone may call disburse)",
+          "at": "2026-11-09T15:30:11.566Z",
+          "hash": "3RGQxnCEZLyJQn5b2XgsLdxXFCZZ17Z6qVzuszhwsuEY",
+          "url": "https://testnet.nearblocks.io/txns/3RGQxnCEZLyJQn5b2XgsLdxXFCZZ17Z6qVzuszhwsuEY",
+          "ok": true
+        }
+      ]
+    },
+    "1": {
+      "title": "Builders' night",
+      "created": "2026-11-09T15:30:25.079Z",
+      "log": [
+        {
+          "job": "prepare",
+          "label": "Coordinator proposes \"Builders' night\": venue 400, food 300, speaker travel 300",
+          "at": "2026-11-09T15:30:27.559Z",
+          "hash": "EoK4ExKMZPrQJKJzTcrXtN9MtaUeKX7W4sjLpYRbQCr5",
+          "url": "https://testnet.nearblocks.io/txns/EoK4ExKMZPrQJKJzTcrXtN9MtaUeKX7W4sjLpYRbQCr5",
+          "ok": true
+        },
+        {
+          "job": "prepare",
+          "label": "Events DAO: a council member proposes a pledge of 500 for venue (proposal #21)",
+          "at": "2026-11-09T15:30:41.273Z",
+          "hash": "AiwoQebFJrmuqwQggUA5Vi22p8rzNwc8PYER7TRgQmn9",
+          "url": "https://testnet.nearblocks.io/txns/AiwoQebFJrmuqwQggUA5Vi22p8rzNwc8PYER7TRgQmn9",
+          "ok": true
+        },
+        {
+          "job": "prepare",
+          "label": "Events DAO: council member 1 of 2 votes yes",
+          "at": "2026-11-09T15:30:41.273Z",
+          "hash": "8ZXNnntZ4gZAqfbcLPfUyN4zKAvyjpan6gtVqrApVqQZ",
+          "url": "https://testnet.nearblocks.io/txns/8ZXNnntZ4gZAqfbcLPfUyN4zKAvyjpan6gtVqrApVqQZ",
+          "ok": true
+        },
+        {
+          "job": "prepare",
+          "label": "Events DAO: council member 2 of 2 votes yes, and the DAO files its own transfer proposal #22 to Lockstep",
+          "at": "2026-11-09T15:30:41.273Z",
+          "hash": "6YFvs1tqq3zVj6QyAPNujdEQuxJFeT5hMd2H9MQBeV3A",
+          "url": "https://testnet.nearblocks.io/txns/6YFvs1tqq3zVj6QyAPNujdEQuxJFeT5hMd2H9MQBeV3A",
+          "ok": true
+        },
+        {
+          "job": "prepare",
+          "label": "Lockstep reads Events DAO's proposal #22 back from the DAO and records the pledge",
+          "at": "2026-11-09T15:30:46.503Z",
+          "hash": "EDLmaLw4U3AJBDMA2LmsETVvGdrQYGFuP4G8HSDYbkJA",
+          "url": "https://testnet.nearblocks.io/txns/EDLmaLw4U3AJBDMA2LmsETVvGdrQYGFuP4G8HSDYbkJA",
+          "ok": true
+        },
+        {
+          "job": "prepare",
+          "label": "Builders DAO: a council member proposes a pledge of 250 for speaker travel (proposal #21)",
+          "at": "2026-11-09T15:31:00.727Z",
+          "hash": "9Xovk7dd3LcJ4tKvkDvbwoXntWiqRY17uiQzg77PQewK",
+          "url": "https://testnet.nearblocks.io/txns/9Xovk7dd3LcJ4tKvkDvbwoXntWiqRY17uiQzg77PQewK",
+          "ok": true
+        },
+        {
+          "job": "prepare",
+          "label": "Builders DAO: council member 1 of 2 votes yes",
+          "at": "2026-11-09T15:31:00.728Z",
+          "hash": "AiFwNNsmL9C1bm2KirGL8ewGVJSEh2ZYusDamhrE7eSF",
+          "url": "https://testnet.nearblocks.io/txns/AiFwNNsmL9C1bm2KirGL8ewGVJSEh2ZYusDamhrE7eSF",
+          "ok": true
+        },
+        {
+          "job": "prepare",
+          "label": "Builders DAO: council member 2 of 2 votes yes, and the DAO files its own transfer proposal #22 to Lockstep",
+          "at": "2026-11-09T15:31:00.728Z",
+          "hash": "Ge8XfxcdfgyjjLAKyX8DGzvX8shrHZDLk2XAyFQBbhcg",
+          "url": "https://testnet.nearblocks.io/txns/Ge8XfxcdfgyjjLAKyX8DGzvX8shrHZDLk2XAyFQBbhcg",
+          "ok": true
+        },
+        {
+          "job": "prepare",
+          "label": "Lockstep reads Builders DAO's proposal #22 back from the DAO and records the pledge",
+          "at": "2026-11-09T15:31:05.773Z",
+          "hash": "C3GCikGVowXRtLJDZvgskT51B8vCzxftpuTn6ewPnNom",
+          "url": "https://testnet.nearblocks.io/txns/C3GCikGVowXRtLJDZvgskT51B8vCzxftpuTn6ewPnNom",
+          "ok": true
+        },
+        {
+          "job": "prepare",
+          "label": "Community DAO: a council member proposes a pledge of 400 for food or venue (proposal #24)",
+          "at": "2026-11-09T15:31:19.542Z",
+          "hash": "EW4EdVo6rTJmKzwwbG58YpS66ZNYg38JNTefEk2pxciJ",
+          "url": "https://testnet.nearblocks.io/txns/EW4EdVo6rTJmKzwwbG58YpS66ZNYg38JNTefEk2pxciJ",
+          "ok": true
+        },
+        {
+          "job": "prepare",
+          "label": "Community DAO: council member 1 of 2 votes yes",
+          "at": "2026-11-09T15:31:19.543Z",
+          "hash": "xv4UTRLonfgg2iqMcYgdA8X8HrWGhEEhmR9hmD7SHm9",
+          "url": "https://testnet.nearblocks.io/txns/xv4UTRLonfgg2iqMcYgdA8X8HrWGhEEhmR9hmD7SHm9",
+          "ok": true
+        },
+        {
+          "job": "prepare",
+          "label": "Community DAO: council member 2 of 2 votes yes, and the DAO files its own transfer proposal #25 to Lockstep",
+          "at": "2026-11-09T15:31:19.543Z",
+          "hash": "DvtU7xrwQxiNxdRfRThJiiBQJt1KWTdwxNseWQjAdUv4",
+          "url": "https://testnet.nearblocks.io/txns/DvtU7xrwQxiNxdRfRThJiiBQJt1KWTdwxNseWQjAdUv4",
+          "ok": true
+        },
+        {
+          "job": "prepare",
+          "label": "Lockstep reads Community DAO's proposal #25 back from the DAO and records the pledge",
+          "at": "2026-11-09T15:31:24.167Z",
+          "hash": "BLs59D6Mb3QZ8dVxSqa6MZ5gh9UNZXHsq7oQi6uYkjLx",
+          "url": "https://testnet.nearblocks.io/txns/BLs59D6Mb3QZ8dVxSqa6MZ5gh9UNZXHsq7oQi6uYkjLx",
+          "ok": true
+        },
+        {
+          "job": "topup",
+          "label": "Donor tops up 50 tUSD for Speaker travel (held in escrow until the plan settles)",
+          "at": "2026-11-09T15:31:32.315Z",
+          "hash": "9ZEjfimj4HGJZrCZRAthqyMqtpWgtCftybkMaeSCVkiL",
+          "url": "https://testnet.nearblocks.io/txns/9ZEjfimj4HGJZrCZRAthqyMqtpWgtCftybkMaeSCVkiL",
+          "ok": true
+        },
+        {
+          "job": "spend",
+          "label": "Community DAO: council proposes to pay 250 for another event (proposal #26)",
+          "at": "2026-11-09T15:31:38.224Z",
+          "hash": "4EtJwGcBXSpUN2v77C884R3yyTHtVhMMiK9nrM9X5gsA",
+          "url": "https://testnet.nearblocks.io/txns/4EtJwGcBXSpUN2v77C884R3yyTHtVhMMiK9nrM9X5gsA",
+          "ok": true
+        },
+        {
+          "job": "spend",
+          "label": "Community DAO: council member 1 of 2 votes yes",
+          "at": "2026-11-09T15:31:47.239Z",
+          "hash": "9UbfiL6S3Bt3viQdQZHh37tedYHKLiXHjA5dLY99d846",
+          "url": "https://testnet.nearblocks.io/txns/9UbfiL6S3Bt3viQdQZHh37tedYHKLiXHjA5dLY99d846",
+          "ok": true
+        },
+        {
+          "job": "spend",
+          "label": "Community DAO: council member 2 of 2 votes yes",
+          "at": "2026-11-09T15:31:47.239Z",
+          "hash": "HksN3qoFf3Nt7gvoiYxoPMHEfYUfzuRM1bYuZDf7tX7D",
+          "url": "https://testnet.nearblocks.io/txns/HksN3qoFf3Nt7gvoiYxoPMHEfYUfzuRM1bYuZDf7tX7D",
+          "ok": true
+        },
+        {
+          "job": "spend",
+          "label": "Community DAO paid 250 elsewhere: its treasury now holds 150 tUSD",
+          "at": "2026-11-09T15:31:47.344Z",
+          "hash": null,
+          "url": null,
+          "ok": true
+        },
+        {
+          "job": "activate",
+          "label": "Activate: the contract checks that every cost line is covered exactly, within each pledge's cap and permitted lines",
+          "at": "2026-11-09T15:31:53.978Z",
+          "hash": "DJ5oXsw9JBWgLhvTBNpjEQxwG18JkbKaK9BgUTDPTtGH",
+          "url": "https://testnet.nearblocks.io/txns/DJ5oXsw9JBWgLhvTBNpjEQxwG18JkbKaK9BgUTDPTtGH",
+          "ok": true
+        },
+        {
+          "job": "collect",
+          "label": "Collect from Events DAO: Lockstep reads the DAO's own pledge proposal and approves it with its role",
+          "at": "2026-11-09T15:32:24.625Z",
+          "hash": "CYTNnu3BAEdxquQkwUMGw7dK8ppaACh3DRdg4YdNcwVg",
+          "url": "https://testnet.nearblocks.io/txns/CYTNnu3BAEdxquQkwUMGw7dK8ppaACh3DRdg4YdNcwVg",
+          "ok": true,
+          "events": [
+            "collect_requested",
+            "approving",
+            "share_arrived"
+          ]
+        },
+        {
+          "job": "collect",
+          "label": "Collect from Builders DAO: Lockstep reads the DAO's own pledge proposal and approves it with its role",
+          "at": "2026-11-09T15:32:24.625Z",
+          "hash": "2WgNPeQrSbW6TibJdtwuewiQjEFbktYpKhdUnM7X5rpJ",
+          "url": "https://testnet.nearblocks.io/txns/2WgNPeQrSbW6TibJdtwuewiQjEFbktYpKhdUnM7X5rpJ",
+          "ok": true,
+          "events": [
+            "collect_requested",
+            "approving",
+            "share_arrived"
+          ]
+        },
+        {
+          "job": "collect",
+          "label": "Collect from Community DAO: Lockstep reads the DAO's own pledge proposal and approves it with its role",
+          "at": "2026-11-09T15:32:24.625Z",
+          "hash": "7tmUhacUMMfUMeH1DxgHAwHABiagZgo6VTHFhmWR6DeS",
+          "url": "https://testnet.nearblocks.io/txns/7tmUhacUMMfUMeH1DxgHAwHABiagZgo6VTHFhmWR6DeS",
+          "ok": false,
+          "events": [
+            "collect_requested",
+            "approving"
+          ],
+          "failure": "The account doesn't have enough balance"
+        },
+        {
+          "job": "collect",
+          "label": "Ask Community DAO how its transfer proposal ended",
+          "at": "2026-11-09T15:32:24.626Z",
+          "hash": "QRg8SeM5hkiXTEQca1sFriTEnzbpLRy6HNVuqgthcvj",
+          "url": "https://testnet.nearblocks.io/txns/QRg8SeM5hkiXTEQca1sFriTEnzbpLRy6HNVuqgthcvj",
+          "ok": true,
+          "events": [
+            "share_failed",
+            "rolled_back"
+          ]
+        },
+        {
+          "job": "collect",
+          "label": "A share failed: plan rolled back, every token that arrived is owed back",
+          "at": "2026-11-09T15:32:24.673Z",
+          "hash": null,
+          "url": null,
+          "ok": true
+        },
+        {
+          "job": "disburse",
+          "label": "Send the refunds (anyone may call disburse)",
+          "at": "2026-11-09T15:32:31.553Z",
+          "hash": "DiriRLSoLtgMc6WbGJwwX8JrwXnAQi246YNx8ZMrBLRi",
+          "url": "https://testnet.nearblocks.io/txns/DiriRLSoLtgMc6WbGJwwX8JrwXnAQi246YNx8ZMrBLRi",
+          "ok": true
+        }
+      ]
+    }
+  }
+}

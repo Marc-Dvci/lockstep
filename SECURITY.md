@@ -7,5 +7,5 @@ transactions with throwaway demo accounts. Please report a vulnerability private
 Useful details: the contract method or page route, the plan id on testnet if one is involved, and what an attacker
 gains. Reports are answered within a few days.
 
-The deployed contract `lockstep.testnet` has no access keys, so a fix ships as a new deployment on a new account, with
-the plans of the old one left readable on chain.
+The deployed contracts `lockstep-v2.testnet` and `lockstep.testnet` have no access keys, so a change ships as a new
+deployment on a new account, as Lockstep 2 did, with the plans of the earlier one left readable on chain.

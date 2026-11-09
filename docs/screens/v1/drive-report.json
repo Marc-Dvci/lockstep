@@ -1,0 +1,14 @@
+{
+  "errors": [],
+  "timings": {
+    "new_plan": 47660,
+    "topup": 6565,
+    "activate": 4391,
+    "collect": 31084,
+    "pay": 6651,
+    "new_plan_2": 56695,
+    "topup_2": 6728,
+    "spend": 14948,
+    "collect_2": 41300
+  }
+}

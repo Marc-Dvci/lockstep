@@ -1,9 +1,10 @@
 {
+  "version": 2,
   "network": "testnet",
   "rpc": "https://test.rpc.fastnear.com",
   "explorer": "https://testnet.nearblocks.io",
-  "created": "2026-11-03T14:46:23.353Z",
-  "lockstep": "lockstep.testnet",
+  "created": "2026-11-09T15:17:47.041Z",
+  "lockstep": "lockstep-v2.testnet",
   "token": "tusd.lockstep.testnet",
   "factory": "sputnikv2.testnet",
   "daos": [
@@ -31,5 +32,7 @@
     "caterer": "caterer.lockstep.testnet",
     "speaker": "speaker.lockstep.testnet",
     "landlord": "landlord.lockstep.testnet"
-  }
+  },
+  "code_hash": "3qxX1HHzqrtwiXxhTbfGmyRQPa5SmaJTjTGVrWEJzgoy",
+  "source": "contract/ at tag v2.0.0"
 }
