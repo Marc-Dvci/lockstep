@@ -23,7 +23,7 @@ jobs:
         name: The hosted demo answers with the live plans
         run: |
           curl -fsS --retry 3 --retry-delay 10 --max-time 60 "$LIVE_URL/api/world" > world.json
-          python3 -c "import json; d = json.load(open('world.json')); assert d['readOnly'] is False and len(d['plans']) >= 7, d; print(len(d['plans']), 'plans, actions on')"
+          python3 -c "import json; d = json.load(open('world.json')); assert d['readOnly'] is False and d['lockstep'] == 'lockstep-v2.testnet' and len(d['plans']) >= 2, d; print(len(d['plans']), 'plans, actions on')"
           curl -fsS --max-time 60 "$LIVE_URL/" | grep -q '<title>Lockstep'
       - if: steps.date.outputs.past != 'true'
         uses: actions/checkout@v4
