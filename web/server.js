@@ -6,9 +6,9 @@ import { createServer } from 'node:http';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { view, call, teraToGas, nearToYocto, sleep, retryRead } from '../scripts/lib/near.js';
+import { view, call, teraToGas, nearToYocto, sleep } from '../scripts/lib/near.js';
 import {
-  pledgeKind, transferKind, propose, approve, analyse, allocationArgs, getPlan, topup, collectAll, disburse,
+  pledgeByVote, registerPledge, transferKind, propose, approve, analyse, allocationArgs, getPlan, topup, collectAll, disburse,
 } from '../scripts/lib/lockstep.js';
 import { loadWorld, DEMO, DATA_DIR, usd, balanceOf } from '../scripts/lib/world.js';
 
@@ -117,11 +117,17 @@ async function preparePlan(step, job) {
   for (const d of DEMO.daos) {
     const id = w.daos[d.key].id;
     const what = d.lines.map((k) => lineLabel[k].toLowerCase()).join(' or ');
-    const p = await propose(A.alice, id, `Pledge up to ${d.cap} tUSD to Lockstep plan #${planId} (${title}), for ${what} only. No money moves unless the whole plan is funded.`, pledgeKind(w.lockstep, planId, usd(d.cap), d.lines), w.rpc);
-    step(`${d.name}: a council member proposes a pledge of ${d.cap} for ${what} (proposal #${p.id})`, { hash: p.hash, fails: [] });
-    const { proposal, txs } = await approve([A.alice, A.bob], id, p.id, w.rpc);
-    for (const [i, t] of txs.entries()) step(`${d.name}: council member ${i + 1} of 2 votes yes`, t);
-    if (proposal.status !== 'Approved') throw new Error(`${d.name} pledge vote ended ${proposal.status}`);
+    const r = await pledgeByVote(A.alice, [A.alice, A.bob], id, {
+      tokenId: w.token, lockstepId: w.lockstep, planId, cap: usd(d.cap), lines: d.lines,
+      description: `Pledge up to ${d.cap} tUSD to Lockstep plan #${planId} (${title}), for ${what} only. This vote files the DAO's own transfer proposal to Lockstep. Lockstep approves it only when the whole plan is funded, keeps the share and sends the rest straight back.`,
+      pledgeDescription: `Lockstep plan #${planId} (${title}): this DAO's pledge of up to ${d.cap} tUSD for ${what}. Lockstep approves it only when the whole plan is funded; the unused part comes straight back.`,
+    }, w.rpc);
+    step(`${d.name}: a council member proposes a pledge of ${d.cap} for ${what} (proposal #${r.voteId})`, { hash: r.voteHash, fails: [] });
+    for (const [i, t] of r.txs.entries()) step(`${d.name}: council member ${i + 1} of 2 votes yes${i === r.txs.length - 1 && r.pledgeId !== null ? `, and the DAO files its own transfer proposal #${r.pledgeId} to Lockstep` : ''}`, t);
+    if (r.proposal.status !== 'Approved' || r.pledgeId === null) throw new Error(`${d.name} pledge vote ended ${r.proposal.status}`);
+    const reg = await registerPledge(A.coordinator, w.lockstep, planId, id, r.pledgeId);
+    step(`Lockstep reads ${d.name}'s proposal #${r.pledgeId} back from the DAO and records the pledge`, reg);
+    if (reg.fails.length) throw new Error(`register_pledge failed: ${summariseFailure(reg.fails)}`);
   }
 }
 
@@ -132,11 +138,6 @@ async function topupAction(planId, amount, line, step) {
 }
 
 async function spendElsewhere(planId, daoKey, step) {
-  // A rolled-back share leaves its proposal bond with the DAO (Sputnik returns bonds only
-  // on success), so each failure demo costs the contract one bond. Keep a margin.
-  const acct = await retryRead(() => w.rpc.query({ request_type: 'view_account', account_id: w.lockstep, finality: 'final' }));
-  const spare = BigInt(acct.amount) - BigInt(acct.storage_usage) * 10n ** 19n;
-  if (spare < 3n * 10n ** 24n) throw new Error('the demo contract is low on testnet NEAR for proposal bonds; the failure demo is paused until it is topped up');
   const d = w.daos[daoKey];
   const amount = 250;
   const p = await propose(A.alice, d.id, `Pay ${amount} tUSD for another event's hall deposit`, transferKind(w.token, A.landlord.accountId, usd(amount)), w.rpc);
@@ -161,7 +162,7 @@ async function collectAction(planId, step) {
   const log = await collectAll(A.coordinator, w.rpc, w.lockstep, planId);
   for (const l of log) {
     const label = l.step === 'collect'
-      ? `Collect from ${daoName(l.funder)}: Lockstep reads the DAO policy, files a transfer proposal and approves it with its role`
+      ? `Collect from ${daoName(l.funder)}: Lockstep reads the DAO's own pledge proposal and approves it with its role`
       : `Ask ${daoName(l.funder)} how its transfer proposal ended`;
     step(label, l, { events: l.events.map((e) => e.event) });
   }
@@ -209,7 +210,7 @@ async function planViewUncached(planId) {
     return { id: d.id, name: d.name, balance: bal, role: role ? role.permissions : null, bond: policy.proposal_bond };
   }));
   const proposals = {};
-  for (const s of plan.shares) if (s.proposal_id !== null) proposals[s.funder] = (await view(w.rpc, s.funder, 'get_proposal', { id: s.proposal_id })).status;
+  for (const p of plan.pledges) proposals[p.funder] = (await view(w.rpc, p.funder, 'get_proposal', { id: p.proposal_id })).status;
   const payees = await Promise.all(plan.lines.map(async (l) => ({ id: l.payee, balance: await balanceOf(w.rpc, w.token, l.payee) })));
   return {
     plan, daos, proposals, payees,

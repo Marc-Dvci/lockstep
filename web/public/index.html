@@ -44,7 +44,7 @@
 
   <div class="grid">
     <section aria-label="Pledges">
-      <div class="sectionhead"><h2>Who pledged</h2><p class="muted">Each council voted its pledge as an ordinary Sputnik proposal. Until settlement, the money stays in each DAO's treasury.</p></div>
+      <div class="sectionhead"><h2>Who pledged</h2><p class="muted">Each council voted to file its own transfer proposal to Lockstep: that proposal is the pledge. Until settlement, the money stays in each DAO's treasury.</p></div>
       <ol class="daos" id="daos"></ol>
     </section>
 
@@ -71,7 +71,7 @@
     <div class="sectionhead"><h2>Settle, or roll back</h2><p class="muted">Anyone may call each step. The contract decides; this page only presses the buttons.</p></div>
     <ol class="stepper">
       <li id="st-activate"><button id="activateBtn">1 · Activate</button><span>The contract checks that every line is covered exactly, within each pledge's cap and permitted lines.</span></li>
-      <li id="st-collect"><button id="collectBtn">2 · Collect shares</button><span>For each DAO, Lockstep files a transfer proposal and approves it with the role the DAO installed. If any share fails, all of it goes back.</span></li>
+      <li id="st-collect"><button id="collectBtn">2 · Collect shares</button><span>For each DAO, Lockstep approves the DAO's own transfer proposal, keeps the share and sends the rest straight back. If any share fails, all of it goes back.</span></li>
       <li id="st-pay"><button id="payBtn">3 · Pay out</button><span>Payouts to the payees, or refunds to every DAO and donor that had sent money.</span></li>
     </ol>
     <div id="outcome"></div>

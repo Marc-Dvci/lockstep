@@ -1,35 +1,36 @@
 {
+  "version": 2,
   "network": "sandbox",
   "rpc": "http://127.0.0.1:3030",
   "explorer": null,
-  "created": "2026-11-03T14:30:24.371Z",
-  "lockstep": "lockstep.test.near",
-  "token": "token.test.near",
-  "factory": "sputnik.test.near",
+  "created": "2026-11-09T14:39:38.005Z",
+  "lockstep": "d2-lockstep.test.near",
+  "token": "d2-token.test.near",
+  "factory": "d2-sputnik.test.near",
   "daos": [
     {
-      "id": "lockstep-events.sputnik.test.near",
+      "id": "d2-events.d2-sputnik.test.near",
       "name": "Events DAO"
     },
     {
-      "id": "lockstep-builders.sputnik.test.near",
+      "id": "d2-builders.d2-sputnik.test.near",
       "name": "Builders DAO"
     },
     {
-      "id": "lockstep-community.sputnik.test.near",
+      "id": "d2-community.d2-sputnik.test.near",
       "name": "Community DAO"
     }
   ],
   "council": [
-    "alice.test.near",
-    "bob.test.near"
+    "d2-alice.test.near",
+    "d2-bob.test.near"
   ],
   "demoAccounts": {
-    "coordinator": "coordinator.test.near",
-    "donor": "donor.test.near",
-    "venue": "venue.test.near",
-    "caterer": "caterer.test.near",
-    "speaker": "speaker.test.near",
-    "landlord": "landlord.test.near"
+    "coordinator": "d2-coordinator.test.near",
+    "donor": "d2-donor.test.near",
+    "venue": "d2-venue.test.near",
+    "caterer": "d2-caterer.test.near",
+    "speaker": "d2-speaker.test.near",
+    "landlord": "d2-landlord.test.near"
   }
 }

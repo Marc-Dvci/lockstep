@@ -7,26 +7,73 @@ export const ONE_YOCTO = 1n;
 
 // ------------------------------------------------------------------ Sputnik
 
-export function lockstepRoleKind(lockstepId) {
+/**
+ * The role a council installs by vote. Lockstep may only approve transfer proposals: it cannot file one, and its
+ * code approves only the transfer proposal the DAO itself filed as its pledge.
+ */
+export function lockstepRoleKind(lockstepId, name = 'lockstep') {
   return {
     ChangePolicyAddOrUpdateRole: {
       role: {
-        name: 'lockstep',
+        name,
         kind: { Group: [lockstepId] },
-        permissions: ['transfer:AddProposal', 'transfer:VoteApprove'],
+        permissions: ['transfer:VoteApprove'],
         vote_policy: { transfer: { weight_kind: 'RoleWeight', quorum: '0', threshold: [1, 1] } },
       },
     },
   };
 }
 
-export function pledgeKind(lockstepId, planId, cap, lines) {
+/** The transfer proposal that is a DAO's pledge: the DAO pays Lockstep its cap, with the plan and lines in msg. */
+export function pledgeTransferKind(tokenId, lockstepId, planId, cap, lines) {
+  return { Transfer: { token_id: tokenId, receiver_id: lockstepId, amount: String(cap), msg: JSON.stringify({ pledge: { plan_id: planId, lines } }) } };
+}
+
+/**
+ * What a council votes to pledge: a FunctionCall on the DAO itself that files the pledge transfer proposal, with
+ * the DAO's own proposal bond. The DAO is then the proposer, and the bond goes back to the DAO.
+ */
+export function pledgeKind(daoId, tokenId, lockstepId, planId, cap, lines, bond, description) {
   return {
     FunctionCall: {
-      receiver_id: lockstepId,
-      actions: [{ method_name: 'pledge', args: b64json({ plan_id: planId, cap: String(cap), lines }), deposit: '0', gas: String(teraToGas('50')) }],
+      receiver_id: daoId,
+      actions: [{
+        method_name: 'add_proposal',
+        args: b64json({ proposal: { description, kind: pledgeTransferKind(tokenId, lockstepId, planId, cap, lines) } }),
+        deposit: String(bond),
+        gas: String(teraToGas('30')),
+      }],
     },
   };
+}
+
+/** The DAO's own pledge proposal for `planId` filed after proposal id `after`, or null. */
+export async function findPledgeProposal(rpc, daoId, lockstepId, planId, after) {
+  const last = Number(await view(rpc, daoId, 'get_last_proposal_id'));
+  for (let id = last - 1; id > after; id--) {
+    const q = await view(rpc, daoId, 'get_proposal', { id });
+    const t = q.kind?.Transfer;
+    if (q.proposer === daoId && t && t.receiver_id === lockstepId && JSON.parse(t.msg || '{}').pledge?.plan_id === planId) return id;
+  }
+  return null;
+}
+
+/**
+ * A council pledges: one member proposes, the council votes, and the DAO files its own transfer proposal to
+ * Lockstep. Returns the vote's proposal, its transactions and the id of the DAO's pledge proposal.
+ */
+export async function pledgeByVote(proposer, voters, daoId, { tokenId, lockstepId, planId, cap, lines, description, pledgeDescription }, rpc) {
+  const policy = await view(rpc, daoId, 'get_policy');
+  const kind = pledgeKind(daoId, tokenId, lockstepId, planId, cap, lines, policy.proposal_bond, pledgeDescription || description);
+  const p = await propose(proposer, daoId, description, kind, rpc);
+  const { proposal, txs } = await approve(voters, daoId, p.id, rpc);
+  const pledgeId = proposal.status === 'Approved' ? await findPledgeProposal(rpc, daoId, lockstepId, planId, p.id) : null;
+  return { voteId: p.id, voteHash: p.hash, proposal, txs, pledgeId };
+}
+
+/** Anyone may register a DAO's pledge proposal with Lockstep, which reads it back from the DAO. */
+export async function registerPledge(caller, lockstepId, planId, daoId, proposalId) {
+  return call(caller, lockstepId, 'register_pledge', { plan_id: planId, dao: daoId, proposal_id: proposalId }, { gas: teraToGas('100') });
 }
 
 export function transferKind(tokenId, receiverId, amount) {
@@ -91,8 +138,8 @@ export async function topup(donor, tokenId, lockstepId, planId, amount, lines) {
 }
 
 /**
- * Pull every waiting share, then ask the DAO about any share whose transfer did not
- * arrive. Returns the transactions in order, labelled.
+ * Approve every waiting share's pledge proposal, then ask the DAO about any share whose transfer did not arrive.
+ * Returns the transactions in order, labelled.
  */
 export async function collectAll(caller, rpc, lockstepId, planId) {
   const log = [];

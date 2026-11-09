@@ -152,7 +152,7 @@ export async function createWorld(network, root, { prefix = '', daoPrefix = 'loc
   const alice = account(w.accounts.alice.id, rpc, w.accounts.alice.key);
   const bob = account(w.accounts.bob.id, rpc, w.accounts.bob.key);
   for (const d of Object.values(w.daos)) {
-    const { id } = await propose(alice, d.id, 'Install Lockstep: it may file and approve transfer proposals, only for shares this DAO pledged by vote', lockstepRoleKind(w.lockstep), rpc);
+    const { id } = await propose(alice, d.id, 'Install Lockstep: it may approve transfer proposals, and approves only the one this DAO files as its pledge, once the plan is funded', lockstepRoleKind(w.lockstep), rpc);
     const { proposal } = await approve([alice, bob], d.id, id, rpc);
     if (proposal.status !== 'Approved') throw new Error(`role on ${d.id}: ${proposal.status}`);
     d.roleProposal = id;
@@ -168,7 +168,7 @@ export function writeDeployment(network, w) {
   const dir = fileURLToPath(new URL('../../deployments/', import.meta.url));
   mkdirSync(dir, { recursive: true });
   writeFileSync(dir + `${network}.json`, JSON.stringify({
-    network, rpc: NETWORKS[network].rpc.split(',')[0], explorer: NETWORKS[network].explorer, created: w.created,
+    version: 2, network, rpc: NETWORKS[network].rpc.split(',')[0], explorer: NETWORKS[network].explorer, created: w.created,
     lockstep: w.lockstep, token: w.token, factory: w.factory,
     daos: Object.values(w.daos).map((d) => ({ id: d.id, name: d.name })),
     council: [w.accounts.alice.id, w.accounts.bob.id],

@@ -100,11 +100,11 @@ function render() {
     const live = daos.find((x) => x.id === d.id);
     const prop = view.proposals[d.id];
     const state = s ? s.state : p ? 'Pledged' : 'No pledge';
-    const stateLabel = { Waiting: 'Share allocated', Requested: 'Transfer proposed', Arrived: 'Share arrived', Failed: 'Share failed', Pledged: 'Pledged', 'No pledge': 'No pledge' }[state];
+    const stateLabel = { Waiting: 'Share allocated', Requested: 'Approved by Lockstep', Arrived: 'Share arrived', Failed: 'Share failed', Pledged: 'Pledged', 'No pledge': 'No pledge' }[state];
     return `<li><span class="sw" style="background:var(--s${i % 3})"></span>
       <span class="who">${esc(d.name)}</span><span class="state ${state}">${stateLabel}</span>
       <span class="what">${p ? `Up to <b>${fmt(p.cap)}</b> for ${p.lines.map((k) => `<span class="chip">${esc(labelOf(plan, k))}</span>`).join('')}` : 'Has not pledged to this plan.'}${s ? ` · share <b>${fmt(s.amount)}</b>` : ''}</span>
-      <span class="meta">Treasury now ${fmt(live.balance)} tUSD · Lockstep role ${live.role ? 'installed' : 'missing'}${prop ? ` · its proposal #${s.proposal_id} is ${prop}` : ''} · <span class="mono">${esc(d.id)}</span></span></li>`;
+      <span class="meta">Treasury now ${fmt(live.balance)} tUSD · Lockstep role ${live.role ? 'installed' : 'missing'}${prop && p ? ` · its pledge is its own proposal #${p.proposal_id}, ${prop}` : ''} · <span class="mono">${esc(d.id)}</span></span></li>`;
   }).join('');
 
   // complete it

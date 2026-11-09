@@ -1,6 +1,7 @@
 // End-to-end test against a local NEAR sandbox (nearcore 2.14.0, see tests/sandbox.sh).
 // Deploys the tUSD token, Lockstep and three Sputnik DAOs running the exact code that
-// sputnikv2.testnet deploys (v3.31), then drives real proposals and votes.
+// sputnikv2.testnet deploys (v3.31), then drives real proposals and votes. Each pledge is
+// a transfer proposal the DAO files on itself by a council vote; Lockstep only approves it.
 //
 //   SANDBOX_RPC=http://127.0.0.1:3030 SANDBOX_KEY=<path to validator_key.json> node --test tests/e2e.test.js
 import test from 'node:test';
@@ -8,8 +9,8 @@ import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { provider, account, view, call, createSubAccount, deploy, teraToGas, nearToYocto } from '../scripts/lib/near.js';
 import {
-  lockstepRoleKind, pledgeKind, transferKind, propose, approve, analyse, allocationArgs,
-  getPlan, topup, collectAll, disburse, ONE_YOCTO,
+  lockstepRoleKind, pledgeByVote, pledgeTransferKind, registerPledge, transferKind, propose, approve, analyse,
+  allocationArgs, getPlan, topup, collectAll, disburse, ONE_YOCTO,
 } from '../scripts/lib/lockstep.js';
 import { sputnikWasm } from '../scripts/fetch-sputnik.js';
 
@@ -70,15 +71,30 @@ async function newPlan(title) {
   return Number(r.value);
 }
 
+async function nearOf(id) {
+  return BigInt((await rpc.query({ request_type: 'view_account', account_id: id, finality: 'final' })).amount);
+}
+
+async function pledge(dao, planId, cap, lines) {
+  const r = await pledgeByVote(w.alice, [w.alice, w.bob], dao, { tokenId: w.token.accountId, lockstepId: w.lockstep.accountId, planId, cap, lines, description: `Pledge to Lockstep plan #${planId}` }, rpc);
+  assert.equal(r.proposal.status, 'Approved', `${dao} pledge vote`);
+  assert.notEqual(r.pledgeId, null, `${dao} filed its own pledge proposal`);
+  const reg = await registerPledge(w.stranger, w.lockstep.accountId, planId, dao, r.pledgeId); // anyone may register
+  assert.equal(reg.fails.length, 0, JSON.stringify(reg.fails));
+  return r.pledgeId;
+}
+
 async function pledgeAll(planId) {
-  const pledges = [
-    [w.events, usd(500), ['venue']],
-    [w.builders, usd(250), ['travel']],
-    [w.community, usd(400), ['food', 'venue']],
-  ];
-  for (const [dao, cap, lines] of pledges) {
-    const { proposal } = await daoVote(dao, `Pledge to Lockstep plan #${planId}`, pledgeKind(w.lockstep.accountId, planId, cap, lines));
-    assert.equal(proposal.status, 'Approved', `${dao} pledge vote`);
+  await pledge(w.events, planId, usd(500), ['venue']);
+  await pledge(w.builders, planId, usd(250), ['travel']);
+  await pledge(w.community, planId, usd(400), ['food', 'venue']);
+}
+
+/** No proposal on any DAO was filed by Lockstep. */
+async function lockstepFiledNothing() {
+  for (const dao of [w.events, w.builders, w.community]) {
+    const all = await view(rpc, dao, 'get_proposals', { from_index: 0, limit: 200 });
+    assert.ok(all.every((p) => p.proposer !== w.lockstep.accountId), `Lockstep filed a proposal on ${dao}`);
   }
 }
 
@@ -98,11 +114,11 @@ test('setup: token, Lockstep, three Sputnik v3.31 DAOs with the Lockstep role', 
   await mint(w.community, usd(400));
   await mint(w.donor.accountId, usd(200));
   for (const dao of [w.events, w.builders, w.community]) {
-    const { proposal } = await daoVote(dao, 'Install Lockstep: may file and approve transfer proposals for pledged shares', lockstepRoleKind(w.lockstep.accountId));
+    const { proposal } = await daoVote(dao, 'Install Lockstep: it may approve transfer proposals, and approves only the one this DAO files as its pledge', lockstepRoleKind(w.lockstep.accountId));
     assert.equal(proposal.status, 'Approved');
   }
   const policy = await view(rpc, w.events, 'get_policy');
-  assert.ok(policy.roles.some((r) => r.name === 'lockstep'));
+  assert.deepEqual(policy.roles.find((r) => r.name === 'lockstep').permissions, ['transfer:VoteApprove']);
 });
 
 test('a plan funded by three DAO pledges and a top-up settles and pays every payee', async () => {
@@ -132,6 +148,7 @@ test('a plan funded by three DAO pledges and a top-up settles and pays every pay
   assert.equal(act.fails.length, 0, JSON.stringify(act.fails));
 
   const daoBefore = { [w.events]: await bal(w.events), [w.builders]: await bal(w.builders), [w.community]: await bal(w.community) };
+  const nearBefore = await nearOf(w.lockstep.accountId);
   const t0 = Date.now();
   const log = await collectAll(w.coordinator, rpc, w.lockstep.accountId, planId);
   report.measured.collect_ms = Date.now() - t0;
@@ -143,9 +160,12 @@ test('a plan funded by three DAO pledges and a top-up settles and pays every pay
   for (const s of plan.shares) {
     const p = await view(rpc, s.funder, 'get_proposal', { id: s.proposal_id });
     assert.equal(p.status, 'Approved');
-    assert.equal(p.proposer, w.lockstep.accountId);
-    assert.equal(daoBefore[s.funder] - (await bal(s.funder)), BigInt(s.amount), `${s.funder} paid exactly its share`);
+    assert.equal(p.proposer, s.funder, 'the DAO filed its own pledge proposal');
+    assert.equal(p.votes[w.lockstep.accountId], 'Approve', 'Lockstep approved it');
+    assert.equal(daoBefore[s.funder] - (await bal(s.funder)), BigInt(s.amount), `${s.funder} paid exactly its share; the rest of its pledge came straight back`);
   }
+  assert.ok((await nearOf(w.lockstep.accountId)) >= nearBefore, 'collecting cost Lockstep no NEAR');
+  await lockstepFiledNothing();
 
   const d = await disburse(w.stranger, w.lockstep.accountId, planId); // anyone may disburse
   assert.equal(d.fails.length, 0, JSON.stringify(d.fails));
@@ -180,13 +200,16 @@ test('when one DAO no longer holds its pledge, the plan rolls back and nobody pa
   const act = await call(w.coordinator, w.lockstep.accountId, 'activate', { plan_id: planId, allocation: allocationArgs(a.allocation) }, { gas: teraToGas('100') });
   assert.equal(act.fails.length, 0, JSON.stringify(act.fails));
 
+  const nearBefore = await nearOf(w.lockstep.accountId);
   const log = await collectAll(w.coordinator, rpc, w.lockstep.accountId, planId);
   plan = await getPlan(rpc, w.lockstep.accountId, planId);
   assert.equal(plan.status, 'RolledBack', JSON.stringify(plan.shares));
+  assert.ok((await nearOf(w.lockstep.accountId)) >= nearBefore, 'a failed share cost Lockstep no NEAR');
   const failed = plan.shares.find((s) => s.state === 'Failed');
   assert.equal(failed.funder, w.community);
   const proposal = await view(rpc, w.community, 'get_proposal', { id: failed.proposal_id });
   assert.equal(proposal.status, 'Failed', 'the DAO itself marked the transfer Failed');
+  assert.equal(proposal.proposer, w.community, 'the failed proposal was the DAO\'s own, with its own bond');
   report.measured.rollback_reason = failed.note;
   report.measured.rollback_steps = log.map((l) => l.step + ':' + l.funder.split('.')[0]);
 
@@ -202,7 +225,7 @@ test('when one DAO no longer holds its pledge, the plan rolls back and nobody pa
   report.measured.rolled_back_plan = planId;
 });
 
-test('a DAO without the Lockstep role fails cleanly with a reason', async () => {
+test('a DAO without the Lockstep role is not failed: its council approves its own pledge', async () => {
   const lonely = await newDao('lonely', [w.alice, w.bob]);
   await mint(lonely, usd(100));
   const r = await call(w.coordinator, w.lockstep.accountId, 'create_plan', {
@@ -210,32 +233,41 @@ test('a DAO without the Lockstep role fails cleanly with a reason', async () => 
     lines: [{ key: 'food', label: 'Food', payee: w.caterer.accountId, amount: String(usd(100)) }],
   }, { deposit: nearToYocto('0.1'), gas: teraToGas('50') });
   const planId = Number(r.value);
-  const { proposal } = await daoVote(lonely, 'Pledge', pledgeKind(w.lockstep.accountId, planId, usd(100), ['food']));
-  assert.equal(proposal.status, 'Approved');
+  const pledgeId = await pledge(lonely, planId, usd(100), ['food']);
   const a = analyse(await getPlan(rpc, w.lockstep.accountId, planId));
   await call(w.coordinator, w.lockstep.accountId, 'activate', { plan_id: planId, allocation: allocationArgs(a.allocation) }, { gas: teraToGas('100') });
   await collectAll(w.coordinator, rpc, w.lockstep.accountId, planId);
-  const plan = await getPlan(rpc, w.lockstep.accountId, planId);
-  assert.equal(plan.status, 'RolledBack');
-  assert.match(plan.shares[0].note, /Lockstep role/);
-  assert.equal(await bal(lonely), usd(100));
+  let plan = await getPlan(rpc, w.lockstep.accountId, planId);
+  assert.equal(plan.status, 'Collecting');
+  assert.equal(plan.shares[0].state, 'Waiting');
+  assert.match(plan.shares[0].note, /council can approve it itself/);
+  // The council approves its own pledge proposal; the transfer arrives like any other.
+  const { proposal } = await approve([w.alice, w.bob], lonely, pledgeId, rpc);
+  assert.equal(proposal.status, 'Approved');
+  plan = await getPlan(rpc, w.lockstep.accountId, planId);
+  assert.equal(plan.status, 'Settled');
+  assert.equal(await bal(lonely), 0n);
 });
 
 test('spoofed tokens, foreign senders and food-only top-ups cannot move the plan', async () => {
   const planId = await newPlan("Builders' night (third date)");
   await pledgeAll(planId);
   // An account that is not a DAO under the accepted factory cannot pledge.
-  const p = await call(w.stranger, w.lockstep.accountId, 'pledge', { plan_id: planId, cap: String(usd(50)), lines: ['travel'] }, { gas: teraToGas('30') });
+  const p = await registerPledge(w.stranger, w.lockstep.accountId, planId, w.stranger.accountId, 0);
   assert.ok(p.fails.length > 0);
+  // Anyone may file proposals on a Sputnik DAO; a stranger's pledge-shaped proposal is not the DAO's pledge.
+  const forged = await propose(w.stranger, w.events, 'Pledge 50 for travel', pledgeTransferKind(w.token.accountId, w.lockstep.accountId, planId, usd(50), ['travel']), rpc);
+  const reg = await registerPledge(w.stranger, w.lockstep.accountId, planId, w.events, forged.id);
+  assert.ok(reg.fails.some((f) => JSON.stringify(f.failure).includes('filed on itself')), JSON.stringify(reg.fails));
   // A food-only top-up is accepted as escrow but does not close the travel gap.
   const t = await topup(w.donor, w.token.accountId, w.lockstep.accountId, planId, usd(50), ['food']);
   assert.equal(t.fails.length, 0);
   const a = analyse(await getPlan(rpc, w.lockstep.accountId, planId));
   assert.equal(a.gap, usd(50));
-  // A fake "share" arrival sent by a plain account through the real token is refunded.
+  // A fake pledge arrival sent by a plain account through the real token is refunded.
   const donorBefore = await bal(w.donor.accountId);
   const fake = await call(w.donor, w.token.accountId, 'ft_transfer_call', {
-    receiver_id: w.lockstep.accountId, amount: String(usd(10)), msg: JSON.stringify({ share: { plan_id: planId } }),
+    receiver_id: w.lockstep.accountId, amount: String(usd(10)), msg: JSON.stringify({ pledge: { plan_id: planId, lines: ['travel'] } }),
   }, { deposit: ONE_YOCTO, gas: teraToGas('100') });
   assert.ok(fake.fails.some((f) => f.executor === w.lockstep.accountId));
   assert.equal(await bal(w.donor.accountId), donorBefore);

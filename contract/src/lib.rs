@@ -1,16 +1,20 @@
-//! Lockstep: DAOs pledge to a shared plan; money moves only when the whole plan is funded.
+//! Lockstep 2: DAOs pledge to a shared plan; money moves only when the whole plan is funded.
+//!
+//! A pledge is a transfer proposal the DAO files on itself by a council vote: it names the token, the amount (the
+//! pledge's cap), Lockstep as receiver and the plan in `msg`. Lockstep's role on the DAO may only approve transfer
+//! proposals, and Lockstep approves the one registered as the DAO's pledge once the plan is fully covered. Lockstep
+//! never files a proposal on a DAO and never attaches NEAR to one.
 //!
 //! Lifecycle of a plan:
 //!   Open        pledges (no money moves) and escrowed top-ups are recorded
-//!   Collecting  an allocation that covers every cost line exactly was accepted;
-//!               each pledging DAO's share is pulled through an ordinary Sputnik
-//!               transfer proposal filed and approved by this contract's DAO role
+//!   Collecting  an allocation that covers every cost line exactly was accepted; Lockstep approves each
+//!               pledging DAO's own transfer proposal, keeps the allocated share and returns the rest
 //!   Settled     every share arrived; payout claims to the payees are assigned
 //!   RolledBack  a share failed; every token that arrived is owed back to its source
 //!   Expired     the plan was never activated; top-ups are owed back
 //!
-//! Claims are paid by `disburse` (anyone may call it); a failed transfer leaves the
-//! claim pending so it can be retried, never paid twice.
+//! Claims are paid by `disburse` (anyone may call it); a failed transfer leaves the claim pending so it can be
+//! retried, never paid twice.
 
 use near_sdk::json_types::{U128, U64};
 use near_sdk::serde::{Deserialize, Serialize};
@@ -27,21 +31,19 @@ pub const MAX_ASSIGNMENTS: usize = 64;
 pub const PLAN_DEPOSIT: NearToken = NearToken::from_millinear(100); // storage for a full-size plan
 pub const MIN_OPEN_SEC: u64 = 60;
 pub const MAX_OPEN_SEC: u64 = 90 * 24 * 3600;
-/// NEAR kept aside for storage and callbacks when attaching proposal bonds.
-pub const BOND_RESERVE: NearToken = NearToken::from_near(1);
 
 const GAS_VIEW: Gas = Gas::from_tgas(10);
-const GAS_ON_POLICY: Gas = Gas::from_tgas(200);
-const GAS_ADD_PROPOSAL: Gas = Gas::from_tgas(20);
-const GAS_ON_ADDED: Gas = Gas::from_tgas(170);
-/// The DAO executes the approved transfer in a detached promise funded from the
-/// unused part of this gas, so it must cover ft_transfer_call and ft_on_transfer.
+const GAS_ON_PLEDGE_READ: Gas = Gas::from_tgas(20);
+/// The DAO executes the approved transfer in a detached promise funded from the unused part of this gas, so it must
+/// cover ft_transfer_call, ft_on_transfer and the DAO's callback.
 const GAS_ACT_PROPOSAL: Gas = Gas::from_tgas(140);
 const GAS_ON_VOTED: Gas = Gas::from_tgas(10);
+const GAS_ON_PROPOSAL_READ: Gas = Gas::from_tgas(170);
 const GAS_ON_STATUS: Gas = Gas::from_tgas(30);
 const GAS_FT_TRANSFER: Gas = Gas::from_tgas(10);
 const GAS_ON_CLAIM: Gas = Gas::from_tgas(8);
 const ONE_YOCTO: NearToken = NearToken::from_yoctonear(1);
+const NO_DEPOSIT: NearToken = NearToken::from_yoctonear(0);
 
 #[near(serializers = [borsh, json])]
 #[derive(Clone, Debug, PartialEq)]
@@ -65,12 +67,16 @@ pub struct CostLine {
 #[near(serializers = [borsh, json])]
 #[derive(Clone, Debug)]
 pub struct Pledge {
-    /// The DAO that voted the pledge (the caller of `pledge`).
+    /// The DAO that filed the transfer proposal by a council vote.
     pub funder: AccountId,
+    /// The amount the DAO's transfer proposal moves: the most this pledge can pay.
     pub cap: U128,
     pub lines: Vec<String>,
+    /// The proposal's own expiry on the DAO: submission time plus the DAO's proposal period.
     pub expires_at: U64,
     pub pledged_at: U64,
+    /// The DAO's transfer proposal that is this pledge.
+    pub proposal_id: u64,
 }
 
 #[near(serializers = [borsh, json])]
@@ -88,7 +94,7 @@ pub struct TopUp {
 pub enum ShareState {
     /// Allocated, not yet requested.
     Waiting,
-    /// `collect` filed the transfer proposal (or is filing it).
+    /// Lockstep read the DAO's proposal and approved it (or is doing so).
     Requested,
     /// The tokens are in escrow.
     Arrived,
@@ -100,7 +106,10 @@ pub enum ShareState {
 #[derive(Clone, Debug)]
 pub struct Share {
     pub funder: AccountId,
+    /// What the allocation takes from this DAO.
     pub amount: U128,
+    /// What the DAO's transfer proposal moves (the pledge's cap); the difference goes straight back.
+    pub pledged: U128,
     pub state: ShareState,
     pub proposal_id: Option<u64>,
     pub note: Option<String>,
@@ -171,11 +180,14 @@ pub struct LineInput {
     pub amount: U128,
 }
 
+/// The `msg` of a transfer to Lockstep.
 #[derive(Deserialize, Serialize)]
 #[serde(crate = "near_sdk::serde", rename_all = "snake_case")]
 pub enum TransferMsg {
+    /// Anyone's top-up, escrowed for the named lines.
     Topup { plan_id: u64, lines: Vec<String> },
-    Share { plan_id: u64 },
+    /// A DAO's pledge: the `msg` of the transfer proposal the DAO filed on itself.
+    Pledge { plan_id: u64, lines: Vec<String> },
 }
 
 #[near(serializers = [json])]
@@ -202,12 +214,56 @@ fn now() -> u64 {
 fn event(name: &str, data: serde_json::Value) {
     env::log_str(&format!(
         "EVENT_JSON:{}",
-        json!({"standard": "lockstep", "version": "1.0.0", "event": name, "data": [data]})
+        json!({"standard": "lockstep", "version": "2.0.0", "event": name, "data": [data]})
     ));
 }
 
 fn valid_key(k: &str) -> bool {
     !k.is_empty() && k.len() <= 24 && k.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+}
+
+fn u128_of(v: &serde_json::Value) -> Option<u128> {
+    v.as_str().and_then(|s| s.parse().ok())
+}
+
+fn u64_of(v: &serde_json::Value) -> Option<u64> {
+    v.as_str().and_then(|s| s.parse().ok()).or_else(|| v.as_u64())
+}
+
+/// A pledge read from a DAO's proposal, before it is checked against a plan.
+pub struct ProposedPledge {
+    pub cap: u128,
+    pub plan_id: u64,
+    pub lines: Vec<String>,
+    pub submitted_at: u64,
+}
+
+/// Reads `proposal` as a pledge filed by `dao` itself, paying `me` in `token`, still waiting for its votes.
+pub fn read_pledge(proposal: &serde_json::Value, dao: &AccountId, me: &AccountId, token: &AccountId) -> Result<ProposedPledge, String> {
+    if proposal["proposer"].as_str() != Some(dao.as_str()) {
+        return Err("the pledge must be a proposal the DAO filed on itself by a council vote".into());
+    }
+    if proposal["status"].as_str() != Some("InProgress") {
+        return Err("the pledge proposal is no longer in progress".into());
+    }
+    let t = &proposal["kind"]["Transfer"];
+    if !t.is_object() {
+        return Err("the pledge proposal is not a transfer".into());
+    }
+    if t["token_id"].as_str() != Some(token.as_str()) {
+        return Err("the pledge transfers another token".into());
+    }
+    if t["receiver_id"].as_str() != Some(me.as_str()) {
+        return Err("the pledge does not pay Lockstep".into());
+    }
+    let cap = u128_of(&t["amount"]).filter(|a| *a > 0).ok_or("the pledge amount must be positive")?;
+    let msg: TransferMsg =
+        t["msg"].as_str().and_then(|m| serde_json::from_str(m).ok()).ok_or("the pledge has no Lockstep msg")?;
+    let TransferMsg::Pledge { plan_id, lines } = msg else {
+        return Err("the pledge msg is not a pledge".into());
+    };
+    let submitted_at = u64_of(&proposal["submission_time"]).ok_or("the proposal has no submission time")?;
+    Ok(ProposedPledge { cap, plan_id, lines, submitted_at })
 }
 
 #[near]
@@ -216,12 +272,7 @@ impl Lockstep {
     pub fn new(tokens: Vec<AccountId>, dao_factories: Vec<AccountId>, collect_window_sec: u64) -> Self {
         require!(!tokens.is_empty(), "at least one token");
         require!((30..=86_400).contains(&collect_window_sec), "collect window 30 s .. 1 day");
-        Self {
-            plans: Vector::new(b"p"),
-            tokens,
-            dao_factories,
-            collect_window_ns: collect_window_sec * 1_000_000_000,
-        }
+        Self { plans: Vector::new(b"p"), tokens, dao_factories, collect_window_ns: collect_window_sec * 1_000_000_000 }
     }
 
     // ---------------------------------------------------------------- plans
@@ -270,30 +321,51 @@ impl Lockstep {
         id
     }
 
-    /// Called by a DAO through an ordinary FunctionCall proposal: the council's vote
-    /// is the pledge. No money moves. Calling again replaces the DAO's pledge.
-    pub fn pledge(&mut self, plan_id: u64, cap: U128, lines: Vec<String>, expires_in_sec: Option<u64>) {
-        let funder = env::predecessor_account_id();
-        require!(self.is_dao(&funder), "pledges come from a DAO created by an accepted factory");
-        let plan = self.open_plan_mut(plan_id);
-        require!(cap.0 > 0, "cap must be positive");
-        Self::check_lines(plan, &lines);
-        let expires_at = match expires_in_sec {
-            Some(s) => now() + s * 1_000_000_000,
-            None => plan.deadline.0,
-        };
-        require!(expires_at > now(), "pledge already expired");
-        let p = Pledge { funder: funder.clone(), cap, lines, expires_at: U64(expires_at), pledged_at: U64(now()) };
-        if let Some(existing) = plan.pledges.iter_mut().find(|p| p.funder == funder) {
-            *existing = p;
-        } else {
-            require!(plan.pledges.len() < MAX_PLEDGES, "too many pledges");
-            plan.pledges.push(p);
-        }
-        event("pledged", json!({"plan_id": plan_id, "funder": funder, "cap": cap}));
+    /// Anyone may register a DAO's pledge: the transfer proposal `proposal_id` that the DAO filed on itself by a
+    /// council vote, paying Lockstep in the plan's token with `{"pledge":{"plan_id","lines"}}` as `msg`. Lockstep
+    /// reads the proposal and the DAO's proposal period, then records the pledge. A second registration from the same
+    /// DAO replaces its pledge. No money moves.
+    pub fn register_pledge(&mut self, plan_id: u64, dao: AccountId, proposal_id: u64) -> Promise {
+        require!(self.is_dao(&dao), "pledges come from a DAO created by an accepted factory");
+        self.open_plan_mut(plan_id);
+        let me = env::current_account_id();
+        Promise::new(dao.clone())
+            .function_call("get_proposal".to_string(), serde_json::to_vec(&json!({"id": proposal_id})).unwrap(), NO_DEPOSIT, GAS_VIEW)
+            .and(Promise::new(dao.clone()).function_call("get_policy".to_string(), b"{}".to_vec(), NO_DEPOSIT, GAS_VIEW))
+            .then(Self::ext(me).with_static_gas(GAS_ON_PLEDGE_READ).on_pledge_read(plan_id, dao, proposal_id))
     }
 
-    /// A DAO may withdraw its pledge while the plan is open.
+    #[private]
+    pub fn on_pledge_read(
+        &mut self,
+        plan_id: u64,
+        dao: AccountId,
+        proposal_id: u64,
+        #[callback_result] proposal: Result<serde_json::Value, PromiseError>,
+        #[callback_result] policy: Result<serde_json::Value, PromiseError>,
+    ) {
+        let me = env::current_account_id();
+        let plan = self.open_plan_mut(plan_id);
+        let proposal = proposal.unwrap_or_else(|_| env::panic_str("could not read the DAO's proposal"));
+        let policy = policy.unwrap_or_else(|_| env::panic_str("could not read the DAO's policy"));
+        let p = read_pledge(&proposal, &dao, &me, &plan.token).unwrap_or_else(|e| env::panic_str(&e));
+        require!(p.plan_id == plan_id, "the pledge names another plan");
+        Self::check_lines(plan, &p.lines);
+        let period = u64_of(&policy["proposal_period"]).unwrap_or_else(|| env::panic_str("the DAO policy has no proposal period"));
+        let expires_at = p.submitted_at.saturating_add(period);
+        require!(expires_at > now(), "the pledge proposal has expired");
+        let pledge = Pledge { funder: dao.clone(), cap: U128(p.cap), lines: p.lines, expires_at: U64(expires_at), pledged_at: U64(now()), proposal_id };
+        if let Some(existing) = plan.pledges.iter_mut().find(|x| x.funder == dao) {
+            *existing = pledge;
+        } else {
+            require!(plan.pledges.len() < MAX_PLEDGES, "too many pledges");
+            plan.pledges.push(pledge);
+        }
+        event("pledged", json!({"plan_id": plan_id, "funder": dao, "cap": U128(p.cap), "proposal_id": proposal_id}));
+    }
+
+    /// A DAO may withdraw its pledge while the plan is open (a FunctionCall proposal of its own). Rejecting or
+    /// removing its transfer proposal on the DAO has the same effect at collection.
     pub fn withdraw_pledge(&mut self, plan_id: u64) {
         let funder = env::predecessor_account_id();
         let plan = self.open_plan_mut(plan_id);
@@ -303,8 +375,8 @@ impl Lockstep {
         event("pledge_withdrawn", json!({"plan_id": plan_id, "funder": funder}));
     }
 
-    /// Anyone may activate with an allocation that pays every cost line exactly from
-    /// pledges and top-ups within their caps and permitted lines.
+    /// Anyone may activate with an allocation that pays every cost line exactly from pledges and top-ups within
+    /// their caps and permitted lines. Every pledge used must outlive the collection window.
     pub fn activate(&mut self, plan_id: u64, allocation: Vec<Assignment>) {
         let window = self.collect_window_ns;
         let plan = self.open_plan_mut(plan_id);
@@ -319,7 +391,7 @@ impl Lockstep {
             if let Some(acc) = a.source.strip_prefix("pledge:") {
                 let pi = plan.pledges.iter().position(|p| p.funder.as_str() == acc).unwrap_or_else(|| env::panic_str("unknown pledge"));
                 let p = &plan.pledges[pi];
-                require!(p.expires_at.0 > now(), "pledge expired");
+                require!(p.expires_at.0 > now() + window, "a pledge expires before the collection window closes");
                 require!(p.lines.contains(&a.line), "pledge may not pay for that line");
                 per_pledge[pi] += a.amount.0;
                 require!(per_pledge[pi] <= p.cap.0, "pledge over its cap");
@@ -342,7 +414,14 @@ impl Lockstep {
             .iter()
             .zip(per_pledge.iter())
             .filter(|(_, amt)| **amt > 0)
-            .map(|(p, amt)| Share { funder: p.funder.clone(), amount: U128(*amt), state: ShareState::Waiting, proposal_id: None, note: None })
+            .map(|(p, amt)| Share {
+                funder: p.funder.clone(),
+                amount: U128(*amt),
+                pledged: p.cap,
+                state: ShareState::Waiting,
+                proposal_id: Some(p.proposal_id),
+                note: None,
+            })
             .collect();
         plan.allocation = allocation;
         plan.status = PlanStatus::Collecting;
@@ -354,11 +433,9 @@ impl Lockstep {
         }
     }
 
-    /// Anyone may pull one DAO's share. Steps, each a separate receipt:
-    /// read the DAO policy (exact proposal bond, Lockstep role present), file a
-    /// transfer proposal to this contract with the plan id in `msg`, approve it with
-    /// the Lockstep role. The DAO then executes the transfer and `ft_on_transfer`
-    /// records the arrival. A failed transfer is detected with `check_share`.
+    /// Anyone may collect one DAO's share: Lockstep reads the DAO's pledge proposal and, if it is still waiting for
+    /// votes and unchanged, approves it with its role. The DAO then transfers the pledged amount with `ft_transfer_call`;
+    /// `ft_on_transfer` keeps the share and returns the rest. Lockstep attaches no NEAR at any step.
     pub fn collect(&mut self, plan_id: u64, funder: AccountId) -> Promise {
         let me = env::current_account_id();
         let plan = self.plan_mut(plan_id);
@@ -367,133 +444,118 @@ impl Lockstep {
         let share = plan.shares.iter_mut().find(|s| s.funder == funder).unwrap_or_else(|| env::panic_str("no share for that DAO"));
         require!(share.state == ShareState::Waiting, "share already requested");
         share.state = ShareState::Requested;
-        event("collect_requested", json!({"plan_id": plan_id, "funder": funder, "amount": share.amount}));
+        let id = share.proposal_id.unwrap();
+        event("collect_requested", json!({"plan_id": plan_id, "funder": funder, "amount": share.amount, "proposal_id": id}));
         Promise::new(funder.clone())
-            .function_call("get_policy".to_string(), b"{}".to_vec(), NearToken::from_yoctonear(0), GAS_VIEW)
-            .then(Self::ext(me).with_static_gas(GAS_ON_POLICY).on_policy(plan_id, funder))
+            .function_call("get_proposal".to_string(), serde_json::to_vec(&json!({"id": id})).unwrap(), NO_DEPOSIT, GAS_VIEW)
+            .then(Self::ext(me).with_static_gas(GAS_ON_PROPOSAL_READ).on_proposal_read(plan_id, funder))
     }
 
     #[private]
-    pub fn on_policy(&mut self, plan_id: u64, funder: AccountId, #[callback_result] policy: Result<serde_json::Value, PromiseError>) -> PromiseOrValue<()> {
+    pub fn on_proposal_read(&mut self, plan_id: u64, funder: AccountId, #[callback_result] proposal: Result<serde_json::Value, PromiseError>) -> PromiseOrValue<()> {
         let me = env::current_account_id();
-        let spare = env::account_balance().saturating_sub(BOND_RESERVE).as_yoctonear();
         let plan = self.plan_mut(plan_id);
         if plan.status != PlanStatus::Collecting {
             return PromiseOrValue::Value(());
         }
-        let (token, title) = (plan.token.clone(), plan.title.clone());
+        let token = plan.token.clone();
         let share = plan.shares.iter().find(|s| s.funder == funder).unwrap().clone();
         if share.state != ShareState::Requested {
             return PromiseOrValue::Value(());
         }
-        let checked = policy.map_err(|_| "could not read the DAO policy".to_string()).and_then(|p| {
-            let bond: u128 = p["proposal_bond"]
-                .as_str()
-                .and_then(|b| b.parse().ok())
-                .ok_or_else(|| "the DAO policy has no proposal bond".to_string())?;
-            if !has_lockstep_role(&p, &me) {
-                return Err("the DAO has not installed the Lockstep role".to_string());
-            }
-            if bond > spare {
-                return Err("Lockstep cannot cover the DAO's proposal bond".to_string());
-            }
-            Ok(bond)
-        });
-        match checked {
-            Err(reason) => {
-                Self::fail_share(plan, &funder, &reason);
-                PromiseOrValue::Value(())
-            }
-            Ok(bond) => {
-                let kind = transfer_kind(&token, &me, share.amount, plan_id);
-                let description = format!("Lockstep plan #{}: {}. Share of {} pledged by this DAO.", plan_id, title, share.amount.0);
-                PromiseOrValue::Promise(
-                    Promise::new(funder.clone())
-                        .function_call(
-                            "add_proposal".to_string(),
-                            serde_json::to_vec(&json!({"proposal": {"description": description, "kind": kind}})).unwrap(),
-                            NearToken::from_yoctonear(bond),
-                            GAS_ADD_PROPOSAL,
-                        )
-                        .then(Self::ext(me).with_static_gas(GAS_ON_ADDED).on_proposal_added(plan_id, funder)),
-                )
-            }
-        }
-    }
-
-    #[private]
-    pub fn on_proposal_added(&mut self, plan_id: u64, funder: AccountId, #[callback_result] id: Result<u64, PromiseError>) -> PromiseOrValue<()> {
-        let me = env::current_account_id();
-        let plan = self.plan_mut(plan_id);
-        let token = plan.token.clone();
-        let collecting = plan.status == PlanStatus::Collecting;
-        let share = plan.shares.iter_mut().find(|s| s.funder == funder).unwrap();
-        match id {
-            Ok(id) if share.state == ShareState::Requested && collecting => {
-                share.proposal_id = Some(id);
-                let kind = transfer_kind(&token, &me, share.amount, plan_id);
-                event("proposal_filed", json!({"plan_id": plan_id, "funder": funder, "proposal_id": id}));
-                PromiseOrValue::Promise(
-                    Promise::new(funder.clone())
-                        .function_call(
-                            "act_proposal".to_string(),
-                            serde_json::to_vec(&json!({"id": id, "action": "VoteApprove", "proposal": kind})).unwrap(),
-                            NearToken::from_yoctonear(0),
-                            GAS_ACT_PROPOSAL,
-                        )
-                        .then(Self::ext(me).with_static_gas(GAS_ON_VOTED).on_voted(plan_id, funder)),
-                )
-            }
-            Ok(_) => PromiseOrValue::Value(()), // plan closed, or the share arrived another way
+        let id = share.proposal_id.unwrap();
+        let p = match proposal {
+            Ok(p) => p,
             Err(_) => {
-                Self::fail_share(plan, &funder, "the DAO refused the transfer proposal");
-                PromiseOrValue::Value(())
+                Self::fail_share(plan, &funder, "the DAO's pledge proposal is gone");
+                return PromiseOrValue::Value(());
+            }
+        };
+        match p["status"].as_str() {
+            Some("InProgress") => {}
+            // The council approved its own pledge: the transfer is in flight or done; the arrival decides.
+            Some("Approved") => return PromiseOrValue::Value(()),
+            Some(status) => {
+                let reason = format!("the DAO's pledge proposal ended {}", status);
+                Self::fail_share(plan, &funder, &reason);
+                return PromiseOrValue::Value(());
+            }
+            None => {
+                Self::fail_share(plan, &funder, "the DAO's pledge proposal has no status");
+                return PromiseOrValue::Value(());
             }
         }
+        let same = read_pledge(&p, &funder, &me, &token).map(|x| x.plan_id == plan_id && x.cap == share.pledged.0).unwrap_or(false);
+        if !same {
+            Self::fail_share(plan, &funder, "the DAO's proposal no longer matches its pledge");
+            return PromiseOrValue::Value(());
+        }
+        event("approving", json!({"plan_id": plan_id, "funder": funder, "proposal_id": id}));
+        PromiseOrValue::Promise(
+            Promise::new(funder.clone())
+                .function_call(
+                    "act_proposal".to_string(),
+                    serde_json::to_vec(&json!({"id": id, "action": "VoteApprove", "proposal": p["kind"]})).unwrap(),
+                    NO_DEPOSIT,
+                    GAS_ACT_PROPOSAL,
+                )
+                .then(Self::ext(me).with_static_gas(GAS_ON_VOTED).on_voted(plan_id, funder)),
+        )
     }
 
-    /// The vote itself failing (not the transfer it triggers) fails the share.
+    /// If Lockstep's vote did not land (the DAO has no Lockstep role, for example), the share goes back to
+    /// waiting: the council can approve its own proposal until the window closes, or anyone can collect again.
     #[private]
     pub fn on_voted(&mut self, plan_id: u64, funder: AccountId, #[callback_result] r: Result<(), PromiseError>) {
-        if r.is_err() {
-            let plan = self.plan_mut(plan_id);
-            Self::fail_share(plan, &funder, "the Lockstep role could not approve the transfer");
+        if r.is_ok() {
+            return;
+        }
+        let plan = self.plan_mut(plan_id);
+        if plan.status != PlanStatus::Collecting {
+            return;
+        }
+        if let Some(share) = plan.shares.iter_mut().find(|s| s.funder == funder && s.state == ShareState::Requested) {
+            share.state = ShareState::Waiting;
+            share.note = Some("Lockstep could not approve the proposal; the council can approve it itself".into());
+            event("approval_refused", json!({"plan_id": plan_id, "funder": funder, "proposal_id": share.proposal_id}));
         }
     }
 
-    /// Anyone may ask the DAO how the share's transfer proposal ended. A proposal the
-    /// DAO marks Failed (its transfer failed, e.g. the treasury no longer holds the
-    /// money), Rejected, Removed or Expired fails the share and rolls the plan back.
-    /// Approved or InProgress changes nothing: the transfer may still be in flight.
+    /// Anyone may ask the DAO how the share's proposal ended. A proposal the DAO marks Failed (its transfer failed,
+    /// e.g. the treasury no longer holds the money), Rejected, Removed or Expired, or one that is gone, fails the
+    /// share and rolls the plan back. Approved or InProgress changes nothing: the transfer may still be in flight.
     pub fn check_share(&mut self, plan_id: u64, funder: AccountId) -> Promise {
         let me = env::current_account_id();
         let plan = self.plan_mut(plan_id);
         require!(plan.status == PlanStatus::Collecting, "plan is not collecting");
         let share = plan.shares.iter().find(|s| s.funder == funder).unwrap_or_else(|| env::panic_str("no share for that DAO"));
         require!(share.state == ShareState::Requested, "share is not awaiting its transfer");
-        let id = share.proposal_id.unwrap_or_else(|| env::panic_str("proposal not filed yet"));
+        let id = share.proposal_id.unwrap();
         Promise::new(funder.clone())
-            .function_call("get_proposal".to_string(), serde_json::to_vec(&json!({"id": id})).unwrap(), NearToken::from_yoctonear(0), GAS_VIEW)
+            .function_call("get_proposal".to_string(), serde_json::to_vec(&json!({"id": id})).unwrap(), NO_DEPOSIT, GAS_VIEW)
             .then(Self::ext(me).with_static_gas(GAS_ON_STATUS).on_proposal_status(plan_id, funder))
     }
 
     #[private]
     pub fn on_proposal_status(&mut self, plan_id: u64, funder: AccountId, #[callback_result] p: Result<serde_json::Value, PromiseError>) -> String {
         let plan = self.plan_mut(plan_id);
-        let status = p.ok().and_then(|v| v["status"].as_str().map(|s| s.to_string())).unwrap_or_else(|| "Unknown".into());
-        if matches!(status.as_str(), "Failed" | "Rejected" | "Removed" | "Expired") {
+        let status = match p {
+            Ok(v) => v["status"].as_str().unwrap_or("Unknown").to_string(),
+            Err(_) => "Gone".to_string(),
+        };
+        if matches!(status.as_str(), "Failed" | "Rejected" | "Removed" | "Expired" | "Gone") {
             let reason = if status == "Failed" {
                 "the DAO's transfer failed: its treasury no longer holds the pledged amount".to_string()
             } else {
-                format!("the DAO's transfer proposal ended {}", status)
+                format!("the DAO's pledge proposal ended {}", status)
             };
             Self::fail_share(plan, &funder, &reason);
         }
         status
     }
 
-    /// Anyone may close a plan whose time is up: an open plan past its deadline
-    /// expires; a collecting plan past its window rolls back missing shares.
+    /// Anyone may close a plan whose time is up: an open plan past its deadline expires; a collecting plan past its
+    /// window rolls back missing shares.
     pub fn finalize(&mut self, plan_id: u64) {
         let plan = self.plan_mut(plan_id);
         match plan.status {
@@ -566,13 +628,14 @@ impl Lockstep {
 
     // ------------------------------------------------------------ token in
 
-    /// NEP-141 receiver. Top-ups: msg {"topup":{"plan_id":N,"lines":["travel"]}}.
-    /// DAO shares: msg {"share":{"plan_id":N}}. Anything else is refunded.
+    /// NEP-141 receiver. Top-ups: msg {"topup":{"plan_id":N,"lines":["travel"]}}. A DAO's pledge arrives with the
+    /// msg of its transfer proposal, {"pledge":{"plan_id":N,"lines":[...]}}: Lockstep keeps the share and returns
+    /// the rest of the pledged amount as unused, so the token sends it straight back to the DAO.
     pub fn ft_on_transfer(&mut self, sender_id: AccountId, amount: U128, msg: String) -> PromiseOrValue<U128> {
         let token = env::predecessor_account_id();
         require!(self.tokens.contains(&token), "token not accepted");
         let parsed: TransferMsg = serde_json::from_str(&msg).unwrap_or_else(|_| env::panic_str("bad msg"));
-        match parsed {
+        let unused = match parsed {
             TransferMsg::Topup { plan_id, lines } => {
                 let plan = self.open_plan_mut(plan_id);
                 require!(plan.token == token, "wrong token for this plan");
@@ -583,22 +646,25 @@ impl Lockstep {
                 plan.topups.push(TopUp { id, contributor: sender_id.clone(), amount, lines, at: U64(now()) });
                 plan.escrow = U128(plan.escrow.0 + amount.0);
                 event("topped_up", json!({"plan_id": plan_id, "topup_id": id, "contributor": sender_id, "amount": amount}));
+                0
             }
-            TransferMsg::Share { plan_id } => {
+            TransferMsg::Pledge { plan_id, .. } => {
                 let plan = self.plan_mut(plan_id);
                 require!(plan.status == PlanStatus::Collecting, "plan is not collecting");
                 require!(plan.token == token, "wrong token for this plan");
                 let share = plan.shares.iter_mut().find(|s| s.funder == sender_id).unwrap_or_else(|| env::panic_str("sender has no share"));
-                // A council may also send its share by an ordinary vote: Waiting is accepted.
+                // The council may approve its own pledge proposal: Waiting is accepted.
                 require!(matches!(share.state, ShareState::Waiting | ShareState::Requested), "share not expected");
-                require!(share.amount == amount, "amount differs from the share");
+                require!(share.pledged == amount, "amount differs from the pledge");
                 share.state = ShareState::Arrived;
-                plan.escrow = U128(plan.escrow.0 + amount.0);
-                event("share_arrived", json!({"plan_id": plan_id, "funder": sender_id, "amount": amount}));
+                let kept = share.amount.0;
+                plan.escrow = U128(plan.escrow.0 + kept);
+                event("share_arrived", json!({"plan_id": plan_id, "funder": sender_id, "amount": U128(kept), "returned": U128(amount.0 - kept)}));
                 Self::maybe_resolve(plan);
+                amount.0 - kept
             }
-        }
-        PromiseOrValue::Value(U128(0))
+        };
+        PromiseOrValue::Value(U128(unused))
     }
 
     // ----------------------------------------------------------------- views
@@ -731,32 +797,6 @@ fn merge_claims(claims: Vec<Claim>) -> Vec<Claim> {
         }
     }
     out
-}
-
-/// True when the policy has a group role containing `me` that may add and approve
-/// transfer proposals (explicit permission or wildcard).
-fn has_lockstep_role(policy: &serde_json::Value, me: &AccountId) -> bool {
-    let can = |perms: &[serde_json::Value], action: &str| {
-        perms.iter().filter_map(|p| p.as_str()).any(|p| {
-            p == format!("transfer:{}", action) || p == "transfer:*" || p == format!("*:{}", action) || p == "*:*"
-        })
-    };
-    policy["roles"].as_array().map_or(false, |roles| {
-        roles.iter().any(|r| {
-            let member = r["kind"]["Group"].as_array().map_or(false, |g| g.iter().any(|m| m.as_str() == Some(me.as_str())));
-            let perms = r["permissions"].as_array().cloned().unwrap_or_default();
-            member && can(&perms, "AddProposal") && can(&perms, "VoteApprove")
-        })
-    })
-}
-
-fn transfer_kind(token: &AccountId, receiver: &AccountId, amount: U128, plan_id: u64) -> serde_json::Value {
-    json!({"Transfer": {
-        "token_id": token,
-        "receiver_id": receiver,
-        "amount": amount,
-        "msg": serde_json::to_string(&TransferMsg::Share { plan_id }).unwrap(),
-    }})
 }
 
 #[cfg(test)]
