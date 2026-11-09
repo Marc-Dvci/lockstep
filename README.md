@@ -261,6 +261,10 @@ The hosted demo is this repository's [Dockerfile](Dockerfile) on Google Cloud Ru
 
 **Baseline disclosure:** every file in this repository was written during the event, starting 3 November 2026. No earlier code of the author's is used.
 
+## Other entry
+
+My other NEAR HACKATHON entry is LIFO (https://github.com/Marc-Dvci/lifo), in Memecoins With Mechanics; the two share no code.
+
 ## License
 
 MIT, see [LICENSE](LICENSE).
