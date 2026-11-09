@@ -16,7 +16,7 @@
 
 **Community DAOs pledge to a shared plan. Money moves only when the whole plan is funded, and the page shows the exact amount and category that would complete it.**
 
-I built Lockstep solo at NEAR HACKATHON. I am Marc Donovici, a technology auditor, so every plan it runs can be rechecked from public chain data, without keys.
+I built Lockstep solo at NEAR HACKATHON. I am Marc Donovici, an auditor in the technology practice of a large European banking group, where my missions cover payment systems and governance. In that work the first questions about a payment are who approved it, within what limit, and what record proves it. Lockstep answers each one on chain: the council's vote approves, the pledge sets the limit, and `npm run verify` rechecks every plan from public data, without keys.
 
 | Try it | Tracks | Built with | On chain on 5 November |
 | --- | --- | --- | --- |
